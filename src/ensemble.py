@@ -24,6 +24,7 @@ import prog
 class Classifier(object):
 	def __init__(self, classifier_name):
 		self.classifier_name = classifier_name
+		self.seq_list = set()
 		self.predictions = {}
 		self.weights = {}
 
@@ -67,7 +68,8 @@ class BlastClassifier(Classifier):
 					except ValueError:
 						e_value = float("1" + info[-2])
 					query_id = re.split(r'\s+|\|', info[0])[0]
-					blast_hits = [bh for bh in re.split(r'\s+|\|', info[1]) if len(bh) > 0]
+					self.seq_list.add(query_id)
+					blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1]) if len(bh) > 0]
 					# Current e-value threshold is set to 0.01
 					if e_value > float("1e-2") or len(blast_hits) == 0:
 						continue
@@ -118,7 +120,7 @@ class PriamClassifier(Classifier):
 				if not line.startswith('#') and len(line) > 0:
 					try:
 						info = line.split('\t')
-						ef_class = info[0]
+						ef_class = info[0].strip()
 						try:
 							e_value = float(info[2])
 							priam_results.append((ef_class, e_value))
@@ -141,6 +143,7 @@ class PriamClassifier(Classifier):
 				logger.log(logging.DEBUG, "Reading sequenceECs.txt: \"" + path_to_sequence_ecs + "\"")
 			with open(path_to_sequence_ecs) as ptse:
 				for query_id, priam_results in self.read_priam_sequence_ec_itr(ptse):
+					self.seq_list.add(query_id)
 					if len(priam_results) > 0:
 						try:
 							for p_res in priam_results:
@@ -162,6 +165,60 @@ class PriamClassifier(Classifier):
 			logger.log(logging.ERROR, "sequenceECs.txt not found: \"" + path_to_sequence_ecs + "\"")
 
 
+class Ensemble(object):
+	def __init__(self):
+		self.classifiers = []
+		self.ensemble_predictions = Classifier("Ensemble")
+		self.final_predictions = {}
+		self.seq_list = set()
+
+	def add_classifier(self, classifier):
+		self.classifiers.append(classifier)
+		for seq_id in sorted(classifier.seq_list):
+			self.seq_list.add(seq_id)
+
+	def max_weight_voting(self):
+		for classifier in self.classifiers:
+			classifier_name = classifier.classifier_name
+			prediction = classifier.predictions
+			weights = classifier.weights
+			for seq_id in prediction:
+				if len(prediction[seq_id]) <= 0:
+					if self.ensemble_predictions.predictions.get(seq_id) is None:
+						self.ensemble_predictions.predictions.setdefault(seq_id, {})
+				else:
+					for ef_class in prediction[seq_id]:
+						ef_weight = weights.get(ef_class, 0.00)
+						if self.ensemble_predictions.predictions.get(seq_id) is None:
+							self.ensemble_predictions.predictions.setdefault(seq_id, {ef_class: ef_weight})
+						else:
+							weighted_ef_classes = self.ensemble_predictions.predictions[seq_id]
+							if weighted_ef_classes.get(ef_class) is None:
+								self.ensemble_predictions.predictions[seq_id].setdefault(ef_class, ef_weight)
+							elif ef_weight > weighted_ef_classes[ef_class]:
+								self.ensemble_predictions.predictions[seq_id][ef_class] = ef_weight
+
+	def absolute_threshold(self, threshold):
+		for seq_id in self.ensemble_predictions.predictions:
+			weighted_ef_classes = self.ensemble_predictions.predictions[seq_id]
+			if len(weighted_ef_classes) > 0:
+				max_weight = max([float(v) for v in weighted_ef_classes.values() if v.replace('.','',1).isdigit()])
+				t = float(max_weight - threshold)
+				# print(seq_id, max_weight, t)
+				if t < 0.0:
+					t = float(0.0)
+				for ef_class in weighted_ef_classes:
+					if float(weighted_ef_classes[ef_class]) > t:
+						try:
+							self.final_predictions[seq_id].append(ef_class)
+						except KeyError:
+							self.final_predictions.setdefault(seq_id, [ef_class])
+			else:
+				self.final_predictions.setdefault(seq_id, [])
+		for seq_id in [s for s in self.seq_list if s not in self.ensemble_predictions.predictions.keys()]:
+			self.final_predictions.setdefault(seq_id, [])
+
+
 
 
 if __name__ == '__main__':
@@ -173,8 +230,20 @@ if __name__ == '__main__':
 	bc.generate_blast_predictions(
 		"/Users/bxue/Projects/GitHub/E2P2/run/Araport11_test.fasta.1549074341.11/blast.1549074341.11",
 		"INFO", "file")
-
+	# print(bc.predictions["AT1G01990.1"])
+	# print(bc.weights)
 	pc = PriamClassifier("/Users/bxue/Projects/PycharmProjects/E2P2/data/weights/priam", "INFO", "file")
 	pc.generate_priam_predictions(
 		"/Users/bxue/Projects/GitHub/E2P2/run/Araport11_test.fasta.1549074341.11/PRIAM_1549074341.11/ANNOTATION/sequenceECs.txt",
 		"INFO", "file")
+	# print(pc.predictions)
+	# print(pc.weights)
+	en = Ensemble()
+	en.add_classifier(bc)
+	en.add_classifier(pc)
+	en.max_weight_voting()
+	threshold = float(0.5)
+	# print(en.ensemble_predictions.predictions)
+	en.absolute_threshold(threshold)
+	for seq_id in sorted(en.final_predictions):
+		print(seq_id, sorted(en.final_predictions[seq_id]))
