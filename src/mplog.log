@@ -1,11 +1,17 @@
-2019-01-30 16:54:27,412 file            INFO     MainProcess Starting Process "cp /Users/bxue/Documents/Carnegie/Projects.docx /Users/bxue/Documents/Carnegie/Projects.docx_2"
-2019-01-30 16:54:27,414 file            INFO     MainProcess Starting Process "ls .."
-2019-01-30 16:54:27,416 file            DEBUG    MainProcess Starting Process "ls haha"
-2019-01-30 16:54:27,418 file            INFO     MainProcess Starting Process "ls"
-2019-01-30 16:54:27,430 file            INFO     MainProcess Process Ended "cp /Users/bxue/Documents/Carnegie/Projects.docx /Users/bxue/Documents/Carnegie/Projects.docx_2", stdout[0]: 
-2019-01-30 16:54:27,430 file            INFO     MainProcess Process Ended "ls ..", stdout[0]: src
-2019-01-30 16:54:27,430 file            ERROR    MainProcess Process Error "ls haha", stdout[0]: ls: haha: No such file or directory
-2019-01-30 16:54:27,430 file            INFO     MainProcess Process Ended "ls", stdout[0]: __init__.py
-2019-01-30 16:54:27,430 file            INFO     MainProcess Process Ended "ls", stdout[1]: ensemble.py
-2019-01-30 16:54:27,430 file            INFO     MainProcess Process Ended "ls", stdout[2]: mplog.log
-2019-01-30 16:54:27,430 file            INFO     MainProcess Process Ended "ls", stdout[3]: prog.py
+2019-02-20 11:40:59,321 file            INFO     MainProcess Starting Process "cp /Users/bxue/Documents/Carnegie/Projects.docx /Users/bxue/Documents/Carnegie/Pro jects.docx_2"
+2019-02-20 11:40:59,324 file            INFO     MainProcess Starting Process "ls .."
+2019-02-20 11:40:59,326 file            DEBUG    MainProcess Starting Process "ls haha"
+2019-02-20 11:40:59,328 file            INFO     MainProcess Starting Process "ls"
+2019-02-20 11:40:59,340 file            INFO     MainProcess CP Ended, stdout[0]: 
+2019-02-20 11:40:59,340 file            INFO     MainProcess  Ended, stdout[0]: data
+2019-02-20 11:40:59,340 file            INFO     MainProcess  Ended, stdout[1]: src
+2019-02-20 11:40:59,340 file            INFO     MainProcess  Ended, stdout[2]: tools
+2019-02-20 11:40:59,341 file            ERROR    MainProcess Process Error "ls haha", stdout[0]: ls: haha: No such file or directory
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[0]: __init__.py
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[1]: __pycache__
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[2]: ensemble.log
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[3]: ensemble.py
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[4]: io.py
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[5]: mplog.log
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[6]: prog.py
+2019-02-20 11:40:59,341 file            INFO     MainProcess  Ended, stdout[7]: tests.py

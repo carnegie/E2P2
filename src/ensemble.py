@@ -9,11 +9,10 @@ Description:	The ensemble module implements ensemble integration algorithms need
 """
 import logging
 import logging.config
+import multiprocessing
 import os
 import re
 import sys
-
-from operator import itemgetter
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, dir_path)
@@ -21,7 +20,85 @@ sys.path.insert(0, dir_path)
 import prog
 
 
-class Classifier(object):
+class RunClassifiers(object):
+	"""Object for running all classifiers
+	"""
+
+	def __init__(self, time_stamp):
+		self.time_stamp = time_stamp
+		self.queue = multiprocessing.Queue()
+		self.classifier_processes = prog.RunProcess()
+		self.output_dict = {}
+
+	def blast_classifer(self, blastp_path, path_to_blast_db_basename, path_to_input, path_to_output, num_threads, logging_level, logger_name):
+		"""Add subprocess of blastp
+		Args:
+			blastp_path: path/command for blastp
+			path_to_blast_db_basename: Name for the blast database
+			path_to_input: Path to the fasta input
+			path_to_output: Path to the blastp output
+			logging_level: The logging level set for reading weight file
+			logger_name: The name of the logger for reading weight file
+		Raises:
+		Returns:
+		"""
+		logger = logging.getLogger(logger_name)
+		self.output_dict.setdefault("blast", path_to_output)
+		try:
+			num_threads = str(int(num_threads))
+		except ValueError:
+			logger.log(logging.DEBUG, "num_threads input error, using \"1\" instead.")
+			num_threads = "1"
+		blast_cmd = [blastp_path, '-db', path_to_blast_db_basename, '-num_threads', num_threads,
+					 '-query', path_to_input, '-out', path_to_output, '-outfmt', '6']
+		try:
+			logger.log(prog.logging_levels[logging_level], "Setup process for blastp: \"" + " ".join(blast_cmd) + "\"")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd, "blastp")
+		except KeyError:
+			logger.log(logging.DEBUG, "Setup process for blastp: \"" + " ".join(blast_cmd) + "\"")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd, "blastp")
+
+	def priam_classifer(self, java_path, priam_search_path, path_to_blast_bin, path_to_priam_profiles, path_to_input, path_to_output_folder, logging_level, logger_name, resume=True):
+		"""Add subprocess of PRIAM_search.jar
+		Args:
+			java_path: path/command for blastp
+			priam_search_path: Name for the blast database
+			path_to_blast_bin: Path to blast+ bin folder
+			path_to_priam_profiles: Path to PRIAM profiles folder
+			path_to_input: Path to the fasta input
+			path_to_output_folder: Path to folder PRIAM_search.jar would generate output
+			logging_level: The logging level set for running PRIAM_search.jar
+			logger_name: The name of the logger for running PRIAM_search.jar
+			resume: Whether or not to resume a preexisting job.
+		Raises:
+		Returns:
+		"""
+		logger = logging.getLogger(logger_name)
+		self.output_dict.setdefault("priam", os.path.join(path_to_output_folder, "PRIAM_%s" % (self.time_stamp), "ANNOTATION", "sequenceECs.txt"))
+		if resume:
+			priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin, '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o', path_to_output_folder, '--fr']
+		else:
+			priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin, '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o', path_to_output_folder, '--fn']
+		try:
+			logger.log(prog.logging_levels[logging_level], "Setup process for PRIAM_search.jar: \"" + " ".join(priam_cmd) + "\"")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd, "PRIAM_search.jar")
+		except KeyError:
+			logger.log(logging.DEBUG, "Setup process for PRIAM_search.jar: \"" + " ".join(priam_cmd) + "\"")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd, "PRIAM_search.jar")
+
+	def run_all_classifiers(self):
+		"""Run all classifier subprocesses
+		Args:
+		Raises:
+		Returns:
+		"""
+		self.classifier_processes.run_all_worker_processes(self.queue)
+
+
+class Predictions(object):
+	"""Object for generating predictions for every classifier
+	"""
+
 	def __init__(self, classifier_name):
 		self.classifier_name = classifier_name
 		self.seq_list = set()
@@ -29,6 +106,14 @@ class Classifier(object):
 		self.weights = {}
 
 	def read_weight_file(self, path_to_weight, logging_level, logger_name):
+		"""Read in the weight files of a classifer
+		Args:
+			path_to_weight: path to the weight file of a classifier
+			logging_level: The logging level set for reading weight file
+			logger_name: The name of the logger for reading weight file
+		Raises:
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 		try:
 			try:
@@ -48,12 +133,23 @@ class Classifier(object):
 			logger.log(logging.ERROR, "Weight file not found: \"" + path_to_weight + "\"")
 
 
-class BlastClassifier(Classifier):
+class BlastPredictions(Predictions):
+	"""Object for generating blast predictions
+	"""
+
 	def __init__(self, path_to_blast_weight, logging_level, logger_name):
 		super().__init__("Blast")
 		self.read_weight_file(path_to_blast_weight, logging_level, logger_name)
 
 	def generate_blast_predictions(self, path_to_blast_out, logging_level, logger_name):
+		"""Read in the blast output and generate predictions
+		Args:
+			path_to_blast_out: path to the output file of blast
+			logging_level: The logging level set for blast prediction
+			logger_name: The name of the logger for blast prediction
+		Raises:
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 		try:
 			try:
@@ -101,13 +197,22 @@ class BlastClassifier(Classifier):
 					q_predictions.pop(p, None)
 
 
-class PriamClassifier(Classifier):
+class PriamPredictions(Predictions):
+	"""Object for generating priam predictions
+	"""
+
 	def __init__(self, path_to_blast_weight, logging_level, logger_name):
 		super().__init__("Priam")
 		self.read_weight_file(path_to_blast_weight, logging_level, logger_name)
 
 	@staticmethod
 	def read_priam_sequence_ec_itr(sequence_ecs_fp):
+		"""Iterator to read PRIAM sequenceEC.txt file
+		Args:
+			sequence_ecs_fp: file pointer to sequenceEC.txt
+		Raises:
+		Returns:
+		"""
 		query_id, priam_results = '', []
 		for line in sequence_ecs_fp:
 			line = line.strip()
@@ -134,6 +239,14 @@ class PriamClassifier(Classifier):
 			yield query_id, priam_results
 
 	def generate_priam_predictions(self, path_to_sequence_ecs, logging_level, logger_name):
+		"""Read in the priam output and generate predictions
+		Args:
+			path_to_sequence_ecs: path to the sequenceEC.txt
+			logging_level: The logging level set for priam prediction
+			logger_name: The name of the logger for priam prediction
+		Raises:
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 		try:
 			try:
@@ -166,18 +279,39 @@ class PriamClassifier(Classifier):
 
 
 class Ensemble(object):
+	"""Object for ensemble for final prediction
+	"""
+
 	def __init__(self):
 		self.classifiers = []
-		self.ensemble_predictions = Classifier("Ensemble")
+		self.ensemble_predictions = Predictions("Ensemble")
 		self.final_predictions = {}
 		self.seq_list = set()
 
 	def add_classifier(self, classifier):
+		"""Add a Classifier object to the ensemble
+		Args:
+			classifier: a classifier object
+		Raises:
+		Returns:
+		"""
 		self.classifiers.append(classifier)
 		for seq_id in sorted(classifier.seq_list):
 			self.seq_list.add(seq_id)
 
-	def max_weight_voting(self):
+	def max_weight_voting(self, logging_level, logger_name):
+		"""Perform maximum weight voting on all classifiers added to Ensemble object
+			Args:
+				logging_level: The logging level set for maximum weight voting
+				logger_name: The name of the logger for maximum weight voting
+			Raises:
+			Returns:
+		"""
+		logger = logging.getLogger(logger_name)
+		try:
+			logger.log(prog.logging_levels[logging_level], "Performing Max Weight Voting...")
+		except KeyError:
+			logger.log(logging.DEBUG, "Performing Max Weight Voting...")
 		for classifier in self.classifiers:
 			classifier_name = classifier.classifier_name
 			prediction = classifier.predictions
@@ -198,11 +332,24 @@ class Ensemble(object):
 							elif ef_weight > weighted_ef_classes[ef_class]:
 								self.ensemble_predictions.predictions[seq_id][ef_class] = ef_weight
 
-	def absolute_threshold(self, threshold):
+	def absolute_threshold(self, threshold, logging_level, logger_name):
+		"""Perform absolute threshold on the ensemble prediction
+			Args:
+				threshold: the threshold to calculate absolute threshold for the prediction
+				logging_level: The logging level set for maximum weight voting
+				logger_name: The name of the logger for maximum weight voting
+			Raises:
+			Returns:
+		"""
+		logger = logging.getLogger(logger_name)
+		try:
+			logger.log(prog.logging_levels[logging_level], "Performing Absolute Threshold to votes...")
+		except KeyError:
+			logger.log(logging.DEBUG, "Performing Absolute Threshold to votes...")
 		for seq_id in self.ensemble_predictions.predictions:
 			weighted_ef_classes = self.ensemble_predictions.predictions[seq_id]
 			if len(weighted_ef_classes) > 0:
-				max_weight = max([float(v) for v in weighted_ef_classes.values() if v.replace('.','',1).isdigit()])
+				max_weight = max([float(v) for v in weighted_ef_classes.values() if v.replace('.', '', 1).isdigit()])
 				t = float(max_weight - threshold)
 				# print(seq_id, max_weight, t)
 				if t < 0.0:
@@ -219,31 +366,46 @@ class Ensemble(object):
 			self.final_predictions.setdefault(seq_id, [])
 
 
-
-
 if __name__ == '__main__':
 	cur_logger_config = prog.LoggerConfig()
-	cur_logger_config.add_new_logger("file", "file", "ensemble.log")
+	cur_logger_config.add_new_logger("file", "ensemble.log")
 	logging.config.dictConfig(cur_logger_config.dictConfig)
 
-	bc = BlastClassifier("/Users/bxue/Projects/PycharmProjects/E2P2/data/weights/blast", "INFO", "file")
-	bc.generate_blast_predictions(
-		"/Users/bxue/Projects/GitHub/E2P2/run/Araport11_test.fasta.1549074341.11/blast.1549074341.11",
-		"INFO", "file")
+	rc = RunClassifiers("2018")
+	rc.blast_classifer("/Users/bxue/Projects/GitHub/E2P2/source/blast/ncbi-blast-2.7.1+/bin/blastp",
+					   "/Users/bxue/Projects/GitHub/E2P2/source/blast/db/rpsd-4.0-20190108.ef.fa",
+					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/Araport11_test.fasta",
+					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/test.blast.Araport11_test.fasta",
+					   "1",
+					   "INFO",
+					   "file")
+	rc.priam_classifer("/Users/bxue/Projects/GitHub/E2P2/source/java/jre1.8.0_192.jre/Contents/Home/bin/java",
+					   "/Users/bxue/Projects/GitHub/E2P2/source/priam/PRIAM_search.jar",
+					   "/Users/bxue/Projects/GitHub/E2P2/source/blast/ncbi-blast-2.7.1+/bin",
+					   "/Users/bxue/Projects/GitHub/E2P2/source/priam/profiles",
+					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/Araport11_test.fasta",
+					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/test.priam.Araport11_test.fasta",
+					   "INFO",
+					   "file")
+	rc.run_all_classifiers()
+	# bc = BlastPredictions("/Users/bxue/Projects/PycharmProjects/E2P2/data/weights/blast", "INFO", "file")
+	# bc.generate_blast_predictions(
+	# 	"/Users/bxue/Documents/Carnegie/PMNProject/update-rpsd-e2p2/E2P2_run/Araport11_test.fasta.1549074341.11/blast.1549074341.11",
+	# 	"INFO", "file")
 	# print(bc.predictions["AT1G01990.1"])
 	# print(bc.weights)
-	pc = PriamClassifier("/Users/bxue/Projects/PycharmProjects/E2P2/data/weights/priam", "INFO", "file")
-	pc.generate_priam_predictions(
-		"/Users/bxue/Projects/GitHub/E2P2/run/Araport11_test.fasta.1549074341.11/PRIAM_1549074341.11/ANNOTATION/sequenceECs.txt",
-		"INFO", "file")
+	# pc = PriamPredictions("/Users/bxue/Projects/PycharmProjects/E2P2/data/weights/priam", "INFO", "file")
+	# pc.generate_priam_predictions(
+	# 	"/Users/bxue/Documents/Carnegie/PMNProject/update-rpsd-e2p2/E2P2_run/Araport11_test.fasta.1549074341.11/PRIAM_1549074341.11/ANNOTATION/sequenceECs.txt",
+	# 	"INFO", "file")
 	# print(pc.predictions)
 	# print(pc.weights)
-	en = Ensemble()
-	en.add_classifier(bc)
-	en.add_classifier(pc)
-	en.max_weight_voting()
-	threshold = float(0.5)
+	# en = Ensemble()
+	# en.add_classifier(bc)
+	# en.add_classifier(pc)
+	# en.max_weight_voting("INFO", "file")
+	# threshold = float(0.5)
 	# print(en.ensemble_predictions.predictions)
-	en.absolute_threshold(threshold)
-	for seq_id in sorted(en.final_predictions):
-		print(seq_id, sorted(en.final_predictions[seq_id]))
+	# en.absolute_threshold(threshold, "INFO", "file")
+	# for seq_id in sorted(en.final_predictions):
+	# 	print(seq_id, sorted(en.final_predictions[seq_id]))

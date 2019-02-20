@@ -43,6 +43,7 @@ def generate_prediction_file_for_assessment(fasta_input, e2p2_out, output_folder
 				tip.write(seq_id + '\n')
 				all_seq_ids.add(seq_id)
 				predicted_classes = [c.strip() for c in info[1].split('|') if len(c.strip()) > 0]
+				print(seq_id, predicted_classes)
 				all_classes = all_classes.union(set(predicted_classes))
 				for c in predicted_classes:
 					tlp.write(c.strip() + '\n')
@@ -56,7 +57,7 @@ def generate_prediction_file_for_assessment(fasta_input, e2p2_out, output_folder
 					if len(predicted_classes) == 0:
 						write_line += seq_id + '|NA'
 					else:
-						write_line += seq_id + '|' + '|'.join(sorted(set(actual_classes)))
+						write_line += seq_id + '|' + '|'.join(sorted(set(predicted_classes)))
 					pp.write(write_line + '\n')
 				except KeyError:
 					print("ID not found", seq_id)
