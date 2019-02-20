@@ -1,0 +1,17 @@
+2019-02-20 12:50:38,155 file            INFO     MainProcess Starting Process "cp /Users/bxue/Documents/Carnegie/Projects.docx /Users/bxue/Documents/Carnegie/Pro jects.docx_2"
+2019-02-20 12:50:38,158 file            INFO     MainProcess Starting Process "ls .."
+2019-02-20 12:50:38,161 file            DEBUG    MainProcess Starting Process "ls haha"
+2019-02-20 12:50:38,164 file            INFO     MainProcess Starting Process "ls"
+2019-02-20 12:50:38,182 file            INFO     MainProcess CP Ended, stdout[0]: 
+2019-02-20 12:50:38,182 file            INFO     MainProcess Process Ended, stdout[0]: data
+2019-02-20 12:50:38,182 file            INFO     MainProcess Process Ended, stdout[1]: src
+2019-02-20 12:50:38,182 file            INFO     MainProcess Process Ended, stdout[2]: tools
+2019-02-20 12:50:38,182 file            ERROR    MainProcess Process Error "ls haha", stdout[0]: ls: haha: No such file or directory
+2019-02-20 12:50:38,183 file            INFO     MainProcess Process Ended, stdout[0]: __init__.py
+2019-02-20 12:50:38,183 file            INFO     MainProcess Process Ended, stdout[1]: __pycache__
+2019-02-20 12:50:38,183 file            INFO     MainProcess Process Ended, stdout[2]: ensemble.log
+2019-02-20 12:50:38,183 file            INFO     MainProcess Process Ended, stdout[3]: ensemble.py
+2019-02-20 12:50:38,183 file            INFO     MainProcess Process Ended, stdout[4]: io.py
+2019-02-20 12:50:38,183 file            INFO     MainProcess Process Ended, stdout[5]: mplog.log
+2019-02-20 12:50:38,184 file            INFO     MainProcess Process Ended, stdout[6]: prog.py
+2019-02-20 12:50:38,184 file            INFO     MainProcess Process Ended, stdout[7]: tests.py
