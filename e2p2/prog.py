@@ -188,19 +188,3 @@ class RunProcess(object):
 							# 		   "Process Ended \"" + cmd + "\", stdout[" + str(index) + "]: " + line)
 							logger.log(logging.DEBUG,
 									   process_name + " Ended, stdout[" + str(index) + "]: " + line)
-
-
-if __name__ == '__main__':
-	q = multiprocessing.Queue()
-	cur_logger_config = LoggerConfig()
-	cur_logger_config.add_new_logger("file", "mplog.log")
-	logging.config.dictConfig(cur_logger_config.dictConfig)
-
-	new_process = RunProcess()
-	new_process.add_process_to_workers(q, "INFO", "file", ["cp", "/Users/bxue/Documents/Carnegie/Projects.docx",
-														   "/Users/bxue/Documents/Carnegie/Pro jects.docx_2"], "CP")
-	new_process.add_process_to_workers(q, "INFO", "file", ["ls", ".."])
-	new_process.add_process_to_workers(q, "DEBUG", "file", ["ls", "haha"])
-	new_process.add_process_to_workers(q, "INFO", "file", ["ls"])
-	new_process.run_all_worker_processes(q)
-	print(new_process.run_results)

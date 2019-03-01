@@ -322,7 +322,7 @@ class Ensemble(object):
 						self.ensemble_predictions.predictions.setdefault(seq_id, {})
 				else:
 					for ef_class in prediction[seq_id]:
-						ef_weight = weights.get(ef_class, 0.00)
+						ef_weight = float(weights.get(ef_class, 0.00))
 						if self.ensemble_predictions.predictions.get(seq_id) is None:
 							self.ensemble_predictions.predictions.setdefault(seq_id, {ef_class: ef_weight})
 						else:
@@ -343,15 +343,14 @@ class Ensemble(object):
 		"""
 		logger = logging.getLogger(logger_name)
 		try:
-			logger.log(prog.logging_levels[logging_level], "Performing Absolute Threshold to votes...")
+			logger.log(prog.logging_levels[logging_level], "Performing Absolute Threshold (" + str(threshold) + ") to votes...")
 		except KeyError:
-			logger.log(logging.DEBUG, "Performing Absolute Threshold to votes...")
+			logger.log(logging.DEBUG, "Performing Absolute Threshold (" + str(threshold) + ") to votes...")
 		for seq_id in self.ensemble_predictions.predictions:
 			weighted_ef_classes = self.ensemble_predictions.predictions[seq_id]
 			if len(weighted_ef_classes) > 0:
-				max_weight = max([float(v) for v in weighted_ef_classes.values() if v.replace('.', '', 1).isdigit()])
+				max_weight = max([float(v) for v in weighted_ef_classes.values() if str(v).replace('.', '', 1).isdigit()])
 				t = float(max_weight - threshold)
-				# print(seq_id, max_weight, t)
 				if t < 0.0:
 					t = float(0.0)
 				for ef_class in weighted_ef_classes:
@@ -364,48 +363,3 @@ class Ensemble(object):
 				self.final_predictions.setdefault(seq_id, [])
 		for seq_id in [s for s in self.seq_list if s not in self.ensemble_predictions.predictions.keys()]:
 			self.final_predictions.setdefault(seq_id, [])
-
-
-if __name__ == '__main__':
-	cur_logger_config = prog.LoggerConfig()
-	cur_logger_config.add_new_logger("file", "ensemble.log")
-	logging.config.dictConfig(cur_logger_config.dictConfig)
-
-	rc = RunClassifiers("2018")
-	rc.blast_classifer("/Users/bxue/Projects/GitHub/E2P2/source/blast/ncbi-blast-2.7.1+/bin/blastp",
-					   "/Users/bxue/Projects/GitHub/E2P2/source/blast/db/rpsd-4.0-20190108.ef.fa",
-					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/Araport11_test.fasta",
-					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/test.blast.Araport11_test.fasta",
-					   "1",
-					   "INFO",
-					   "file")
-	rc.priam_classifer("/Users/bxue/Projects/GitHub/E2P2/source/java/jre1.8.0_192.jre/Contents/Home/bin/java",
-					   "/Users/bxue/Projects/GitHub/E2P2/source/priam/PRIAM_search.jar",
-					   "/Users/bxue/Projects/GitHub/E2P2/source/blast/ncbi-blast-2.7.1+/bin",
-					   "/Users/bxue/Projects/GitHub/E2P2/source/priam/profiles",
-					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/Araport11_test.fasta",
-					   "/Users/bxue/Documents/Carnegie/PMNProject/pmn_pipeline_test/test.priam.Araport11_test.fasta",
-					   "INFO",
-					   "file")
-	rc.run_all_classifiers()
-	# bc = BlastPredictions("/Users/bxue/Projects/PycharmProjects/E2P2/data/weights/blast", "INFO", "file")
-	# bc.generate_blast_predictions(
-	# 	"/Users/bxue/Documents/Carnegie/PMNProject/update-rpsd-e2p2/E2P2_run/Araport11_test.fasta.1549074341.11/blast.1549074341.11",
-	# 	"INFO", "file")
-	# print(bc.predictions["AT1G01990.1"])
-	# print(bc.weights)
-	# pc = PriamPredictions("/Users/bxue/Projects/PycharmProjects/E2P2/data/weights/priam", "INFO", "file")
-	# pc.generate_priam_predictions(
-	# 	"/Users/bxue/Documents/Carnegie/PMNProject/update-rpsd-e2p2/E2P2_run/Araport11_test.fasta.1549074341.11/PRIAM_1549074341.11/ANNOTATION/sequenceECs.txt",
-	# 	"INFO", "file")
-	# print(pc.predictions)
-	# print(pc.weights)
-	# en = Ensemble()
-	# en.add_classifier(bc)
-	# en.add_classifier(pc)
-	# en.max_weight_voting("INFO", "file")
-	# threshold = float(0.5)
-	# print(en.ensemble_predictions.predictions)
-	# en.absolute_threshold(threshold, "INFO", "file")
-	# for seq_id in sorted(en.final_predictions):
-	# 	print(seq_id, sorted(en.final_predictions[seq_id]))
