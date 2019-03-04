@@ -48,13 +48,14 @@ class LoggerConfig(object):
 			},
 		}
 
-	def add_new_logger(self, logger_name, logger_handler_filename, logger_handler_level=None):
+	def add_new_logger(self, logger_name, logger_handler_filename, logger_handler_level="INFO", logger_handler_mode='w'):
 		"""Adding a new Logger to dictConfig
 			Args:
 				logger_name: Name of the new Logger
 				logger_handler_name: Name of the handler
 				logger_handler_filename: Path to the log
 				logger_handler_level: Logger lever, from [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+				logger_handler_mode:
 			Raises:
 			Returns:
 		"""
@@ -62,13 +63,21 @@ class LoggerConfig(object):
 		new_logger = {
 			'handlers': [logger_name]
 		}
-		new_logger_handler = {
-			'class': 'logging.FileHandler',
-			'filename': logger_handler_filename,
-			'mode': 'w',
-			'formatter': 'detailed',
-		}
-		if logger_handler_level is not None and logger_handler_level in logger_levels:
+		if logger_handler_mode in ['w', 'a', 'w+', 'a+']:
+			new_logger_handler = {
+				'class': 'logging.FileHandler',
+				'filename': logger_handler_filename,
+				'mode': logger_handler_mode,
+				'formatter': 'detailed',
+			}
+		else:
+			new_logger_handler = {
+				'class': 'logging.FileHandler',
+				'filename': logger_handler_filename,
+				'mode': "w",
+				'formatter': 'detailed',
+			}
+		if logger_handler_level in logger_levels:
 			new_logger_handler.setdefault('level', logger_handler_level)
 		self.dictConfig['handlers'].setdefault(logger_name, new_logger_handler)
 		self.dictConfig['loggers'].setdefault(logger_name, new_logger)
@@ -115,7 +124,8 @@ class RunProcess(object):
 		try:
 			call_output = subprocess.check_output(cmd, encoding='UTF-8', stderr=subprocess.STDOUT)
 		except subprocess.CalledProcessError as exc:
-			self.mp_queue.put((' '.join(cmd), logging_level, logger_name, exc.returncode, str(exc.output.strip()), process_name))
+			self.mp_queue.put(
+				(' '.join(cmd), logging_level, logger_name, exc.returncode, str(exc.output.strip()), process_name))
 		else:
 			self.mp_queue.put((' '.join(cmd), logging_level, logger_name, 0, call_output.strip(), process_name))
 
@@ -129,7 +139,8 @@ class RunProcess(object):
 		Raises:
 		Returns:
 		"""
-		wp = multiprocessing.Process(target=self.worker_process, args=(mpq, logging_level, logger_name, cmd, process_name,))
+		wp = multiprocessing.Process(target=self.worker_process,
+									 args=(mpq, logging_level, logger_name, cmd, process_name,))
 		self.workers.append((wp, ' '.join(cmd), logging_level, logger_name, process_name))
 
 	def run_all_worker_processes(self, mpq):

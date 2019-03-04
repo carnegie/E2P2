@@ -14,9 +14,7 @@ import os
 import re
 import sys
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, dir_path)
-
+# pipeline modules
 import prog
 
 
@@ -30,7 +28,8 @@ class RunClassifiers(object):
 		self.classifier_processes = prog.RunProcess()
 		self.output_dict = {}
 
-	def blast_classifer(self, blastp_path, path_to_blast_db_basename, path_to_input, path_to_output, num_threads, logging_level, logger_name):
+	def blast_classifer(self, blastp_path, path_to_blast_db_basename, path_to_input, path_to_output, num_threads,
+						logging_level, logger_name):
 		"""Add subprocess of blastp
 		Args:
 			blastp_path: path/command for blastp
@@ -53,12 +52,15 @@ class RunClassifiers(object):
 					 '-query', path_to_input, '-out', path_to_output, '-outfmt', '6']
 		try:
 			logger.log(prog.logging_levels[logging_level], "Setup process for blastp: \"" + " ".join(blast_cmd) + "\"")
-			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd, "blastp")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd,
+															 "blastp")
 		except KeyError:
 			logger.log(logging.DEBUG, "Setup process for blastp: \"" + " ".join(blast_cmd) + "\"")
-			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd, "blastp")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd,
+															 "blastp")
 
-	def priam_classifer(self, java_path, priam_search_path, path_to_blast_bin, path_to_priam_profiles, path_to_input, path_to_output_folder, logging_level, logger_name, resume=True):
+	def priam_classifer(self, java_path, priam_search_path, path_to_blast_bin, path_to_priam_profiles, path_to_input,
+						path_to_output_folder, logging_level, logger_name, resume=True):
 		"""Add subprocess of PRIAM_search.jar
 		Args:
 			java_path: path/command for blastp
@@ -74,17 +76,26 @@ class RunClassifiers(object):
 		Returns:
 		"""
 		logger = logging.getLogger(logger_name)
-		self.output_dict.setdefault("priam", os.path.join(path_to_output_folder, "PRIAM_%s" % (self.time_stamp), "ANNOTATION", "sequenceECs.txt"))
+		self.output_dict.setdefault("priam",
+									os.path.join(path_to_output_folder, "PRIAM_%s" % (self.time_stamp), "ANNOTATION",
+												 "sequenceECs.txt"))
 		if resume:
-			priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin, '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o', path_to_output_folder, '--fr']
+			priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin,
+						 '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o',
+						 path_to_output_folder, '--fr']
 		else:
-			priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin, '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o', path_to_output_folder, '--fn']
+			priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin,
+						 '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o',
+						 path_to_output_folder, '--fn']
 		try:
-			logger.log(prog.logging_levels[logging_level], "Setup process for PRIAM_search.jar: \"" + " ".join(priam_cmd) + "\"")
-			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd, "PRIAM_search.jar")
+			logger.log(prog.logging_levels[logging_level],
+					   "Setup process for PRIAM_search.jar: \"" + " ".join(priam_cmd) + "\"")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd,
+															 "PRIAM_search.jar")
 		except KeyError:
 			logger.log(logging.DEBUG, "Setup process for PRIAM_search.jar: \"" + " ".join(priam_cmd) + "\"")
-			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd, "PRIAM_search.jar")
+			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd,
+															 "PRIAM_search.jar")
 
 	def run_all_classifiers(self):
 		"""Run all classifier subprocesses
@@ -131,25 +142,52 @@ class Predictions(object):
 						continue
 		except IOError:
 			logger.log(logging.ERROR, "Weight file not found: \"" + path_to_weight + "\"")
+			sys.exit(1)
 
+	@staticmethod
+	def read_priam_sequence_ec_itr(sequence_ecs_fp):
+		"""Iterator to read PRIAM sequenceEC.txt file
+		Args:
+			sequence_ecs_fp: file pointer to sequenceEC.txt
+		Raises:
+		Returns:
+		"""
+		query_id, priam_results = '', []
+		for line in sequence_ecs_fp:
+			line = line.strip()
+			if line.startswith('>'):
+				if len(query_id) > 0:
+					yield query_id, priam_results
+				query_id = re.sub(r'^>', '', re.split(r'\s+|\|', line)[0])
+				query_id, priam_results = query_id, []
+			else:
+				if not line.startswith('#') and len(line) > 0:
+					try:
+						info = line.split('\t')
+						ef_class = info[0].strip()
+						try:
+							e_value = float(info[2])
+							priam_results.append((ef_class, e_value))
+						except ValueError:
+							continue
+					except IndexError:
+						continue
+				else:
+					continue
+		if len(query_id) > 0:
+			yield query_id, priam_results
 
-class BlastPredictions(Predictions):
-	"""Object for generating blast predictions
-	"""
-
-	def __init__(self, path_to_blast_weight, logging_level, logger_name):
-		super().__init__("Blast")
-		self.read_weight_file(path_to_blast_weight, logging_level, logger_name)
-
-	def generate_blast_predictions(self, path_to_blast_out, logging_level, logger_name):
+	def generate_blast_predictions(self, path_to_blast_weight, path_to_blast_out, logging_level, logger_name):
 		"""Read in the blast output and generate predictions
 		Args:
+			path_to_blast_weight:
 			path_to_blast_out: path to the output file of blast
 			logging_level: The logging level set for blast prediction
 			logger_name: The name of the logger for blast prediction
 		Raises:
 		Returns:
 		"""
+		self.read_weight_file(path_to_blast_weight, logging_level, logger_name)
 		logger = logging.getLogger(logger_name)
 		try:
 			try:
@@ -188,6 +226,7 @@ class BlastPredictions(Predictions):
 							self.predictions[query_id].setdefault(ef, e_value)
 		except IOError:
 			logger.log(logging.ERROR, "Blast output not found: \"" + path_to_blast_out + "\"")
+			sys.exit(1)
 
 		# Remove non EF Classes from prediction
 		for q_id in self.predictions:
@@ -196,57 +235,17 @@ class BlastPredictions(Predictions):
 				if not p.startswith("EF"):
 					q_predictions.pop(p, None)
 
-
-class PriamPredictions(Predictions):
-	"""Object for generating priam predictions
-	"""
-
-	def __init__(self, path_to_blast_weight, logging_level, logger_name):
-		super().__init__("Priam")
-		self.read_weight_file(path_to_blast_weight, logging_level, logger_name)
-
-	@staticmethod
-	def read_priam_sequence_ec_itr(sequence_ecs_fp):
-		"""Iterator to read PRIAM sequenceEC.txt file
-		Args:
-			sequence_ecs_fp: file pointer to sequenceEC.txt
-		Raises:
-		Returns:
-		"""
-		query_id, priam_results = '', []
-		for line in sequence_ecs_fp:
-			line = line.strip()
-			if line.startswith('>'):
-				if len(query_id) > 0:
-					yield query_id, priam_results
-				query_id = re.sub(r'^>', '', re.split(r'\s+|\|', line)[0])
-				query_id, priam_results = query_id, []
-			else:
-				if not line.startswith('#') and len(line) > 0:
-					try:
-						info = line.split('\t')
-						ef_class = info[0].strip()
-						try:
-							e_value = float(info[2])
-							priam_results.append((ef_class, e_value))
-						except ValueError:
-							continue
-					except IndexError:
-						continue
-				else:
-					continue
-		if len(query_id) > 0:
-			yield query_id, priam_results
-
-	def generate_priam_predictions(self, path_to_sequence_ecs, logging_level, logger_name):
+	def generate_priam_predictions(self, path_to_priam_weight, path_to_sequence_ecs, logging_level, logger_name):
 		"""Read in the priam output and generate predictions
 		Args:
+			path_to_priam_weight:
 			path_to_sequence_ecs: path to the sequenceEC.txt
 			logging_level: The logging level set for priam prediction
 			logger_name: The name of the logger for priam prediction
 		Raises:
 		Returns:
 		"""
+		self.read_weight_file(path_to_priam_weight, logging_level, logger_name)
 		logger = logging.getLogger(logger_name)
 		try:
 			try:
@@ -276,6 +275,7 @@ class PriamPredictions(Predictions):
 
 		except IOError:
 			logger.log(logging.ERROR, "sequenceECs.txt not found: \"" + path_to_sequence_ecs + "\"")
+			sys.exit(1)
 
 
 class Ensemble(object):
@@ -343,13 +343,15 @@ class Ensemble(object):
 		"""
 		logger = logging.getLogger(logger_name)
 		try:
-			logger.log(prog.logging_levels[logging_level], "Performing Absolute Threshold (" + str(threshold) + ") to votes...")
+			logger.log(prog.logging_levels[logging_level],
+					   "Performing Absolute Threshold (" + str(threshold) + ") to votes...")
 		except KeyError:
 			logger.log(logging.DEBUG, "Performing Absolute Threshold (" + str(threshold) + ") to votes...")
 		for seq_id in self.ensemble_predictions.predictions:
 			weighted_ef_classes = self.ensemble_predictions.predictions[seq_id]
 			if len(weighted_ef_classes) > 0:
-				max_weight = max([float(v) for v in weighted_ef_classes.values() if str(v).replace('.', '', 1).isdigit()])
+				max_weight = max(
+					[float(v) for v in weighted_ef_classes.values() if str(v).replace('.', '', 1).isdigit()])
 				t = float(max_weight - threshold)
 				if t < 0.0:
 					t = float(0.0)

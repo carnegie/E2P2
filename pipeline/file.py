@@ -4,9 +4,7 @@ import logging.config
 import os
 import sys
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, dir_path)
-
+# pipeline modules
 import prog
 
 
@@ -40,7 +38,6 @@ class E2P2Output(object):
 		except KeyError:
 			logger.log(logging.DEBUG, "Loading efmap: \"" + ef_map_path + "\"")
 		self.efmap = self.read_pf_maps(ef_map_path, 0, 1)
-
 
 	def add_predictions_of_classifer(self, classifier):
 		try:
@@ -91,7 +88,9 @@ class E2P2Output(object):
 						classifier_line = classifier + '\t'
 						weights = self.predictions_of_classifers[classifier].weights
 						try:
-							classifier_predictions = set(self.predictions_of_classifers[classifier].predictions[seq_id]).intersection(set(predictions))
+							classifier_predictions = set(
+								self.predictions_of_classifers[classifier].predictions[seq_id]).intersection(
+								set(predictions))
 							weighted_predictions = []
 							for result in sorted(classifier_predictions):
 								try:
@@ -123,10 +122,12 @@ class E2P2Output(object):
 						op.write("ID\t%s\nNAME\t%s\nPRODUCT-TYPE\tP\n" % (seq_id, seq_id))
 						for ef_class in sorted(predictions):
 							try:
-								mapped_ids = ["METACYC\t" + i if "RXN" in i else "EC\t" + i for i in self.efmap[ef_class]]
+								mapped_ids = ["METACYC\t" + i if "RXN" in i else "EC\t" + i for i in
+											  self.efmap[ef_class]]
 								op.write('\n'.join(mapped_ids) + '\n')
 							except KeyError:
-								logger.log(logging.ERROR, "EF Class: \"" + ef_class + "\" assigned to \"" + seq_id + "\" not found in map.")
+								logger.log(logging.ERROR,
+										   "EF Class: \"" + ef_class + "\" assigned to \"" + seq_id + "\" not found in map.")
 						op.write("//\n")
 			try:
 				logger.log(prog.logging_levels[logging_level], "Results (pf) written to: \"" + output_path + "\"")
@@ -134,6 +135,7 @@ class E2P2Output(object):
 				logger.log(logging.DEBUG, "Results (pf) written to: \"" + output_path + "\"")
 		else:
 			logger.log(logging.ERROR, "EF map not found, please set up with read_efmap()...")
+			sys.exit(1)
 
 	def write_orxn_pf_results(self, output_path, ec_superseded, metacyc_rxn_ec, official_ec_metacyc_rxn,
 							  to_remove_non_small_molecule_metabolism, logging_level, logger_name):
@@ -143,7 +145,8 @@ class E2P2Output(object):
 		metacyc_rxn_ec_dict = self.read_pf_maps(metacyc_rxn_ec, 1, 0)
 		official_ec_metacyc_rxn_dict = self.read_pf_maps(official_ec_metacyc_rxn, 0, 1)
 		# metacyc_sub_reactions_dict = self.read_pf_maps(metacyc_sub_reactions, 0, 1)
-		to_remove_non_small_molecule_metabolism_list = sorted(self.read_pf_maps(to_remove_non_small_molecule_metabolism, 0, 0).keys())
+		to_remove_non_small_molecule_metabolism_list = sorted(
+			self.read_pf_maps(to_remove_non_small_molecule_metabolism, 0, 0).keys())
 
 		if len(self.efmap) > 0:
 			with open(output_path, 'w') as op:
@@ -158,7 +161,8 @@ class E2P2Output(object):
 								ec_ids_updated = set()
 								for ec in ec_ids:
 									try:
-										ec_superseded_ids = [e.replace('EC-', '') for e in ec_superseded_dict["EC-" + ec]]
+										ec_superseded_ids = [e.replace('EC-', '') for e in
+															 ec_superseded_dict["EC-" + ec]]
 										ec_ids_updated.update(ec_superseded_ids)
 									except KeyError:
 										ec_ids_updated.add(ec)
@@ -168,8 +172,10 @@ class E2P2Output(object):
 									elif ec_updated in metacyc_rxn_ec_dict:
 										metacyc_ids.update(metacyc_rxn_ec_dict[ec_updated])
 							except KeyError:
-								logger.log(logging.ERROR, "EF Class: \"" + ef_class + "\" assigned to \"" + seq_id + "\" not found in map.")
-						pf_ids = sorted(['METACYC\t' + m for m in metacyc_ids if m not in to_remove_non_small_molecule_metabolism_list])
+								logger.log(logging.ERROR,
+										   "EF Class: \"" + ef_class + "\" assigned to \"" + seq_id + "\" not found in map.")
+						pf_ids = sorted(['METACYC\t' + m for m in metacyc_ids if
+										 m not in to_remove_non_small_molecule_metabolism_list])
 						if len(pf_ids) > 0:
 							op.write("ID\t%s\nNAME\t%s\nPRODUCT-TYPE\tP\n" % (seq_id, seq_id))
 							op.write('\n'.join(pf_ids) + '\n')
@@ -180,3 +186,4 @@ class E2P2Output(object):
 				logger.log(logging.DEBUG, "Results (orxn.pf) written to: \"" + output_path + "\"")
 		else:
 			logger.log(logging.ERROR, "EF map not found, please set up with read_efmap()...")
+			sys.exit(1)
