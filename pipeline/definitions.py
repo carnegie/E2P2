@@ -33,6 +33,7 @@ DEFAULT_OUTPUT_SUFFIX = ".e2p2v4"
 DEFAULT_LONG_OUTPUT_SUFFIX = ".long"
 DEFAULT_PF_OUTPUT_SUFFIX = ".pf"
 DEFAULT_ORXN_PF_OUTPUT_SUFFIX = ".orxn.pf"
+DEFAULT_FINAL_PF_OUTPUT_SUFFIX = ".final.pf"
 
 # Website Default
 BLAST_PLUS_DOWNLOAD_LINK = "ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/"

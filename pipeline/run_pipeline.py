@@ -57,7 +57,8 @@ def get_blastp_bin_for_priam(blastp_cmd, logging_level, logger_name):
 
 def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, rpsd_db_name_path, blast_output_path, num_threads,
 					  java_cmd, priam_search_jar, blast_bin_path, priam_profiles_path, priam_output_path, priam_resume,
-					  threshold, e2p2_short_output, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output, logging_level):
+					  threshold, e2p2_short_output, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output, e2p2_final_pf_output,
+					  logging_level, protein_gene_path=None):
 	logger = logging.getLogger(definitions.DEFAULT_LOGGER_NAME)
 	# Set up object for running classifiers
 	rc = ensemble.RunClassifiers(time_stamp)
@@ -89,7 +90,7 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, rpsd_db_name_pat
 		# Preform absolute threshold on classifiers voting results
 		en.absolute_threshold(threshold, logging_level, definitions.DEFAULT_LOGGER_NAME)
 		# Set up object for writing E2P2 output
-		e2p2 = file.E2P2Output(en.final_predictions)
+		e2p2 = file.E2P2files(en.final_predictions)
 		logger.log(logging.INFO, "Preparing results files.")
 		# Add classifer predictions to E2P2 Output for detailed results
 		e2p2.add_predictions_of_classifer(bc)
@@ -106,10 +107,19 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, rpsd_db_name_pat
 								   definitions.OFFICIAL_EC_METACYC_RXN_MAP,
 								   definitions.TO_REMOVE_NON_SMALL_MOLECULE_METABOLISM, logging_level,
 								   definitions.DEFAULT_LOGGER_NAME)
+		if protein_gene_path is not None:
+			e2p2.write_final_pf_results(e2p2_final_pf_output,
+										definitions.EC_SUPERSEDED_MAP, definitions.METACYC_RXN_MAP,
+										definitions.OFFICIAL_EC_METACYC_RXN_MAP,
+										definitions.TO_REMOVE_NON_SMALL_MOLECULE_METABOLISM, protein_gene_path,
+										logging_level, definitions.DEFAULT_LOGGER_NAME)
 		logger.log(logging.INFO, "Operation complete.")
 		logger.log(logging.INFO, "Main results are in the file: %s" % e2p2_short_output)
 		logger.log(logging.INFO, "Detailed results are in the file: %s" % e2p2_long_output)
-		logger.log(logging.INFO, "To build PGDB, use .pf file: %s" % e2p2_orxn_pf_output)
+		if protein_gene_path is not None:
+			logger.log(logging.INFO, "To build PGDB, use .pf file: %s" % e2p2_final_pf_output)
+		else:
+			logger.log(logging.INFO, "To build PGDB, use .pf file: %s" % e2p2_orxn_pf_output)
 	except KeyError as classifer_missing:
 		logger.log(logging.ERROR, "Missing classifer result file(s): " + str(classifer_missing))
 		sys.exit(1)
@@ -148,8 +158,9 @@ if __name__ == '__main__':
 	parser.add_argument("--priam_search", "-ps", dest="priam_search", required=True, type=definitions.PathType('file'),
 						help=textwrap.dedent(
 							"Path to \"PRIAM_search.jar\".\nDownload Link:" + definitions.PRIAM_SEARCH_LINK))
-	parser.add_argument("--blast_bin", "-bb", dest="blast_bin", type=definitions.PathType('blastbin'), help=textwrap.dedent(
-		"Command of or path to BLAST+ bin folder.\nDownload Link:" + definitions.BLAST_PLUS_DOWNLOAD_LINK))
+	parser.add_argument("--blast_bin", "-bb", dest="blast_bin", type=definitions.PathType('blastbin'),
+						help=textwrap.dedent(
+							"Command of or path to BLAST+ bin folder.\nDownload Link:" + definitions.BLAST_PLUS_DOWNLOAD_LINK))
 	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", required=True, type=definitions.PathType('dir'),
 						help="Path to PRIAM profile.")
 	parser.add_argument("--priam_resume", "-pr", dest="priam_resume", action='store_true',
@@ -160,6 +171,8 @@ if __name__ == '__main__':
 						help="Specify the location of the temp folder. By default would be in the same directory of the output.")
 	parser.add_argument("--log", "-l", dest="log_path", type=definitions.PathType('parent'),
 						help="Specify the location of the log file. By default would be \"runE2P2.log\" in the temp folder.")
+	parser.add_argument("--protein_gene", "-pg", dest="protein_gene_path", type=definitions.PathType('file'),
+						help="Provide a protein to gene map. This will be used to generate a splice variant removed fasta file and output our final version of e2p2.")
 	verbose_message = '''Verbose level of log output. Default is 0.
 		0: only step information are logged
 		1: all information are logged
@@ -167,15 +180,15 @@ if __name__ == '__main__':
 	parser.add_argument("--verbose", "-v", dest="verbose", default="0", choices=["0", "1"],
 						help=textwrap.dedent(verbose_message))
 	args = parser.parse_args()
-	print(args)
 	timestamp = str(time.time())
-	# timestamp = "2018"
 	input_path_folder = os.path.dirname(args.input_file)
 	input_file_name = os.path.basename(args.input_file)
+	input_file_path = args.input_file
 	if args.output_path is None:
-		output_path = args.input_file + definitions.DEFAULT_OUTPUT_SUFFIX
+		output_path = input_file_path + definitions.DEFAULT_OUTPUT_SUFFIX
 	else:
 		output_path = args.output_path
+	output_folder = os.path.dirname(output_path)
 	if args.temp_folder is None:
 		temp_folder = args.input_file + '.' + timestamp
 	else:
@@ -219,15 +232,18 @@ if __name__ == '__main__':
 	check_commands_executable(cmd_list, logger_handler_level, definitions.DEFAULT_LOGGER_NAME)
 
 	if args.blast_bin is None:
-		blast_bin_path = get_blastp_bin_for_priam(args.blastp_cmd, logger_handler_level, definitions.DEFAULT_LOGGER_NAME)
+		blast_bin_path = get_blastp_bin_for_priam(args.blastp_cmd, logger_handler_level,
+												  definitions.DEFAULT_LOGGER_NAME)
 		if blast_bin_path is None:
 			logger.log(logging.ERROR, "Cannot verify BLAST+ bin folder from %s." % args.blastp_cmd)
 			sys.exit(1)
 	else:
 		blast_bin_path = args.blast_bin
+
 	e2p2_long_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_LONG_OUTPUT_SUFFIX
 	e2p2_pf_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_PF_OUTPUT_SUFFIX
 	e2p2_orxn_pf_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_ORXN_PF_OUTPUT_SUFFIX
+	e2p2_final_pf_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_FINAL_PF_OUTPUT_SUFFIX
 	if os.path.isfile(output_path):
 		logger.log(logging.WARNING, "Output file %s exists, will overwrite..." % output_path)
 	if os.path.isfile(e2p2_long_output):
@@ -237,6 +253,13 @@ if __name__ == '__main__':
 	if os.path.isfile(e2p2_orxn_pf_output):
 		logger.log(logging.WARNING, "Output file %s exists, will overwrite..." % e2p2_orxn_pf_output)
 
+	if args.protein_gene_path is not None:
+		input_file_path = file.E2P2files(None).remove_splice_variants(input_file_path, output_folder,
+																  args.protein_gene_path, logger_handler_level,
+																  definitions.DEFAULT_LOGGER_NAME)
+		if os.path.isfile(e2p2_final_pf_output):
+			logger.log(logging.WARNING, "Output file %s exists, will overwrite..." % e2p2_final_pf_output)
+
 	blastp_output_path = os.path.join(temp_folder, 'blast.%s.%s' % (input_file_name, timestamp))
 	if os.path.isfile(blastp_output_path):
 		logger.log(logging.WARNING, "Path %s for blastp result exists, will overwrite..." % blastp_output_path)
@@ -245,9 +268,10 @@ if __name__ == '__main__':
 		if args.priam_resume is True:
 			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will resume..." % priam_output_path)
 		else:
-			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will resume..." % priam_output_path)
-	run_e2p2_pipeline(timestamp, args.input_file, args.blastp_cmd, args.rpsd_db, blastp_output_path, args.num_threads,
-					  args.java_cmd, args.priam_search, blast_bin_path, args.priam_profile, temp_folder, args.priam_resume,
+			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will overwrite..." % priam_output_path)
+	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, args.rpsd_db, blastp_output_path, args.num_threads,
+					  args.java_cmd, args.priam_search, blast_bin_path, args.priam_profile, temp_folder,
+					  args.priam_resume,
 					  float(args.threshold), output_path, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
-					  prog.logging_levels[logger_handler_level])
+					  e2p2_final_pf_output, prog.logging_levels[logger_handler_level], args.protein_gene_path)
 	logger.log(logging.INFO, "Intermediate files are in the directory: %s" % temp_folder)
