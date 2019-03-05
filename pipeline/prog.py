@@ -122,12 +122,12 @@ class RunProcess(object):
 		root.setLevel(logging.DEBUG)
 		root.addHandler(qh)
 		try:
-			call_output = subprocess.check_output(cmd, encoding='UTF-8', stderr=subprocess.STDOUT)
+			call_output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 		except subprocess.CalledProcessError as exc:
 			self.mp_queue.put(
-				(' '.join(cmd), logging_level, logger_name, exc.returncode, str(exc.output.strip()), process_name))
+				(' '.join(cmd), logging_level, logger_name, exc.returncode, str(exc.output.strip(), "utf-8"), process_name))
 		else:
-			self.mp_queue.put((' '.join(cmd), logging_level, logger_name, 0, call_output.strip(), process_name))
+			self.mp_queue.put((' '.join(cmd), logging_level, logger_name, 0, str(call_output.strip(), "utf-8"), process_name))
 
 	def add_process_to_workers(self, mpq, logging_level, logger_name, cmd, process_name="Process"):
 		"""add a worker process to the workers
