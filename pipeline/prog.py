@@ -10,6 +10,7 @@ import logging.config
 import logging.handlers
 import multiprocessing
 import subprocess
+import sys
 import threading
 
 logging_levels = {
@@ -151,6 +152,7 @@ class RunProcess(object):
 		Returns:
 		"""
 		for worker in self.workers:
+			worker[0].daemon = True
 			worker[0].start()
 			logger = logging.getLogger(worker[3])
 			try:
@@ -161,11 +163,20 @@ class RunProcess(object):
 		lp.start()
 		# At this point, the main process could do some useful work of its own
 		# Once it's done that, it can wait for the workers to terminate...
-		for worker in self.workers:
-			worker[0].join()
-		# And now tell the logging thread to finish up, too
-		mpq.put(None)
-		lp.join()
+		try:
+			for worker in self.workers:
+				worker[0].join()
+			# And now tell the logging thread to finish up, too
+			mpq.put(None)
+			lp.join()
+		except KeyboardInterrupt:
+			for worker in self.workers:
+				worker[0].terminate()
+			mpq.put(None)
+			lp.join()
+			logger = logging.getLogger()
+			logger.log(logging.ERROR, "Program interrupted, exiting...")
+			sys.exit(1)
 		# Retrieve stdout of all queued workers
 		for i in range(len(self.workers)):
 			cmd, logging_level, logger_name, returncode, output, process_name = (self.mp_queue.get())
