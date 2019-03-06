@@ -57,8 +57,8 @@ def get_blastp_bin_for_priam(blastp_cmd, logging_level, logger_name):
 		return None
 
 
-def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, rpsd_db_name_path, blast_output_path, num_threads,
-					  java_cmd, priam_search_jar, blast_bin_path, priam_profiles_path, priam_output_path, priam_resume,
+def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight,rpsd_db_name_path, blast_output_path, num_threads,
+					  java_cmd, priam_search_jar, priam_weight, blast_bin_path, priam_profiles_path, priam_output_path, priam_resume,
 					  threshold, e2p2_short_output, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output, e2p2_final_pf_output,
 					  logging_level, protein_gene_path=None):
 	logger = logging.getLogger(definitions.DEFAULT_LOGGER_NAME)
@@ -76,10 +76,10 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, rpsd_db_name_pat
 		logger.log(logging.INFO, "Compiling predictions.")
 		# Read in prediction results
 		bc = ensemble.Predictions("Blast")
-		bc.generate_blast_predictions(definitions.BLAST_WEIGHT, rc.output_dict["blast"], logging_level,
+		bc.generate_blast_predictions(blast_weight, rc.output_dict["blast"], logging_level,
 									  definitions.DEFAULT_LOGGER_NAME)
 		pc = ensemble.Predictions("Priam")
-		pc.generate_priam_predictions(definitions.PRIAM_WEIGHT, rc.output_dict["priam"], logging_level,
+		pc.generate_priam_predictions(priam_weight, rc.output_dict["priam"], logging_level,
 									  definitions.DEFAULT_LOGGER_NAME)
 		# Set up object for ensemble
 		en = ensemble.Ensemble()
@@ -151,6 +151,8 @@ if __name__ == '__main__':
 						help="Path to output file. By Default would be in the same folder of the input.")
 	parser.add_argument("--blastp", "-b", dest="blastp_cmd", required=True, help=textwrap.dedent(
 		"Command of or path to BLAST+ \"blastp\".\nDownload Link:" + definitions.BLAST_PLUS_DOWNLOAD_LINK))
+	parser.add_argument("--blast_weight", "-bw", dest="blast_weight", type=definitions.PathType('file'),
+						help=textwrap.dedent("Path to blast weight for the blast classifier"))
 	parser.add_argument("--rpsd", "-r", dest="rpsd_db", required=True, type=definitions.PathType('blastdb'),
 						help="Path to rpsd database name.")
 	parser.add_argument("--num_threads", "-n", dest="num_threads", type=int, required=False, default="1",
@@ -165,6 +167,8 @@ if __name__ == '__main__':
 							"Command of or path to BLAST+ bin folder.\nDownload Link:" + definitions.BLAST_PLUS_DOWNLOAD_LINK))
 	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", required=True, type=definitions.PathType('dir'),
 						help="Path to PRIAM profile.")
+	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
+						help=textwrap.dedent("Path to blast weight for the blast classifier"))
 	parser.add_argument("--priam_resume", "-pr", dest="priam_resume", action='store_true',
 						help="Whether or not to resume a found PRIAM_search.jar process.")
 	parser.add_argument("--threshold", "-th", dest="threshold", type=float, default="0.5",
@@ -241,11 +245,18 @@ if __name__ == '__main__':
 			sys.exit(1)
 	else:
 		blast_bin_path = args.blast_bin
-
-	e2p2_long_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_LONG_OUTPUT_SUFFIX
-	e2p2_pf_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_PF_OUTPUT_SUFFIX
-	e2p2_orxn_pf_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_ORXN_PF_OUTPUT_SUFFIX
-	e2p2_final_pf_output = output_path + definitions.DEFAULT_OUTPUT_SUFFIX + definitions.DEFAULT_FINAL_PF_OUTPUT_SUFFIX
+	if args.blast_weight is None:
+		blast_weight_path = definitions.BLAST_WEIGHT
+	else:
+		blast_weight_path = args.blast_weight
+	if args.priam_weight is None:
+		priam_weight_path = definitions.PRIAM_WEIGHT
+	else:
+		priam_weight_path = args.priam_weight
+	e2p2_long_output = output_path + definitions.DEFAULT_LONG_OUTPUT_SUFFIX
+	e2p2_pf_output = output_path + definitions.DEFAULT_PF_OUTPUT_SUFFIX
+	e2p2_orxn_pf_output = output_path + definitions.DEFAULT_ORXN_PF_OUTPUT_SUFFIX
+	e2p2_final_pf_output = output_path + definitions.DEFAULT_FINAL_PF_OUTPUT_SUFFIX
 	if os.path.isfile(output_path):
 		logger.log(logging.WARNING, "Output file %s exists, will overwrite..." % output_path)
 	if os.path.isfile(e2p2_long_output):
@@ -271,9 +282,8 @@ if __name__ == '__main__':
 			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will resume..." % priam_output_path)
 		else:
 			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will overwrite..." % priam_output_path)
-	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, args.rpsd_db, blastp_output_path, args.num_threads,
-					  args.java_cmd, args.priam_search, blast_bin_path, args.priam_profile, temp_folder,
-					  args.priam_resume,
-					  float(args.threshold), output_path, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
+	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, blast_weight_path, args.rpsd_db, blastp_output_path, args.num_threads,
+					  args.java_cmd, args.priam_search, priam_weight_path, blast_bin_path, args.priam_profile, temp_folder,
+					  args.priam_resume, float(args.threshold), output_path, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
 					  e2p2_final_pf_output, prog.logging_levels[logger_handler_level], args.protein_gene_path)
 	logger.log(logging.INFO, "Intermediate files are in the directory: %s" % temp_folder)
