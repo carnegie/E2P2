@@ -165,7 +165,7 @@ if __name__ == '__main__':
 	parser.add_argument("--blast_bin", "-bb", dest="blast_bin", type=definitions.PathType('blastbin'),
 						help=textwrap.dedent(
 							"Command of or path to BLAST+ bin folder.\nDownload Link:" + definitions.BLAST_PLUS_DOWNLOAD_LINK))
-	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", required=True, type=definitions.PathType('dir'),
+	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", required=True, type=definitions.PathType('profiles'),
 						help="Path to PRIAM profile.")
 	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
 						help=textwrap.dedent("Path to blast weight for the blast classifier"))

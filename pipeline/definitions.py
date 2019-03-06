@@ -45,10 +45,10 @@ PRIAM_SEARCH_LINK = "http://priam.prabi.fr/utilities/PRIAM_search.jar"
 class PathType(object):
 	def __init__(self, type='file'):
 		'''
-		type: file, dir, parent, None, or a function returning True for valid paths
+		type: file, dir, parent, 'blastdb', 'blastbin', 'profiles', None, or a function returning True for valid paths
 		'''
 
-		assert type in ('file', 'dir', 'parent', 'blastdb', 'blastbin', None) or hasattr(type, '__call__')
+		assert type in ('file', 'dir', 'parent', 'blastdb', 'blastbin', 'profiles', None) or hasattr(type, '__call__')
 		self._type = type
 
 	def __call__(self, string):
@@ -75,6 +75,18 @@ class PathType(object):
 			if not os.path.isdir(path) or 'makeprofiledb' not in bin_files or \
 					'rpsblast' not in bin_files or 'rpstblastn' not in bin_files:
 				raise ArgumentTypeError("Path not a valid Blast+ bin folder: '%s'" % string)
+		elif self._type == 'profiles':
+			bin_files = os.listdir(path)
+			if not os.path.isdir(path) or 'PROFILES' not in bin_files or \
+					'annotation_rules.xml' not in bin_files or 'genome_rules.xml' not in bin_files:
+				raise ArgumentTypeError("Path not a valid Priam profiles folder: '%s'" % string)
+			else:
+				profiles_path = os.path.join(path, 'PROFILES')
+				annotation_rules = os.path.join(path, 'annotation_rules.xml')
+				genome_rules = os.path.join(path, 'genome_rules.xml')
+				if not os.path.isdir(profiles_path) or not os.path.isfile(annotation_rules) \
+					or not os.path.isfile(genome_rules):
+					raise ArgumentTypeError("Path not a valid Priam profiles folder: '%s'" % string)
 		else:
 			raise ArgumentTypeError("path not valid: '%s'" % string)
 		return string
