@@ -285,5 +285,5 @@ if __name__ == '__main__':
 	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, blast_weight_path, args.rpsd_db, blastp_output_path, args.num_threads,
 					  args.java_cmd, args.priam_search, priam_weight_path, blast_bin_path, args.priam_profile, temp_folder,
 					  args.priam_resume, float(args.threshold), output_path, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
-					  e2p2_final_pf_output, prog.logging_levels[logger_handler_level], args.protein_gene_path)
+					  e2p2_final_pf_output, logger_handler_level, args.protein_gene_path)
 	logger.log(logging.INFO, "Intermediate files are in the directory: %s" % temp_folder)
