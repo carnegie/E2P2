@@ -203,7 +203,7 @@ class Predictions(object):
 						e_value = float("1" + info[-2])
 					query_id = re.split(r'\s+|\|', info[0])[0]
 					self.seq_list.add(query_id)
-					blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1]) if len(bh) > 0]
+					blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1]) if len(bh.strip()) > 0]
 					# Current e-value threshold is set to 0.01
 					if e_value > float("1e-2") or len(blast_hits) == 0:
 						continue
@@ -356,7 +356,7 @@ class Ensemble(object):
 				if t < 0.0:
 					t = float(0.0)
 				for ef_class in weighted_ef_classes:
-					if float(weighted_ef_classes[ef_class]) > t:
+					if float(weighted_ef_classes[ef_class]) >= t:
 						try:
 							self.final_predictions[seq_id].append(ef_class)
 						except KeyError:
