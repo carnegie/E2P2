@@ -137,7 +137,7 @@ if __name__ == '__main__':
 	notes = '''
 	    - Input protein sequences should be in FASTA format.
 	    - Headers in the FASTA file should begin with the sequence ID followed by a space.
-	    - Intermediate results files can be found in a temporary directory in its own subdirectory labeled with a
+	    - Intermediate results files can be found in a temporary directory of its own subdirectory labeled with a
 	      date and time stamp.
 	'''
 
@@ -145,16 +145,14 @@ if __name__ == '__main__':
 									 formatter_class=argparse.RawTextHelpFormatter,
 									 epilog=textwrap.dedent(notes)
 									 )
+	# Argument for IO
 	parser.add_argument("--input", "-i", dest="input_file", required=True, type=definitions.PathType('file'),
 						help="Path to input protein sequences file")
 	parser.add_argument("--output", "-o", dest="output_path", type=definitions.PathType('parent'),
 						help="Path to output file. By Default would be in the same folder of the input.")
+	# Argument for third party software
 	parser.add_argument("--blastp", "-b", dest="blastp_cmd", required=True, help=textwrap.dedent(
 		"Command of or path to BLAST+ \"blastp\".\nDownload Link:" + definitions.BLAST_PLUS_DOWNLOAD_LINK))
-	parser.add_argument("--blast_weight", "-bw", dest="blast_weight", type=definitions.PathType('file'),
-						help=textwrap.dedent("Path to blast weight for the blast classifier"))
-	parser.add_argument("--rpsd", "-r", dest="rpsd_db", required=True, type=definitions.PathType('blastdb'),
-						help="Path to rpsd database name.")
 	parser.add_argument("--num_threads", "-n", dest="num_threads", type=int, required=False, default="1",
 						help="Number of threads to run \"blastp\". Default is 1")
 	parser.add_argument("--java", "-j", dest="java_cmd", required=True, help=textwrap.dedent(
@@ -162,15 +160,27 @@ if __name__ == '__main__':
 	parser.add_argument("--priam_search", "-ps", dest="priam_search", required=True, type=definitions.PathType('file'),
 						help=textwrap.dedent(
 							"Path to \"PRIAM_search.jar\".\nDownload Link:" + definitions.PRIAM_SEARCH_LINK))
+	parser.add_argument("--priam_resume", "-pr", dest="priam_resume", action='store_true',
+						help="Whether or not to resume a found PRIAM_search.jar process.")
 	parser.add_argument("--blast_bin", "-bb", dest="blast_bin", type=definitions.PathType('blastbin'),
 						help=textwrap.dedent(
 							"Command of or path to BLAST+ bin folder.\nDownload Link:" + definitions.BLAST_PLUS_DOWNLOAD_LINK))
-	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", required=True, type=definitions.PathType('profiles'),
-						help="Path to PRIAM profile.")
-	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
+	# Arguments for databases
+	# parser.add_argument("--data", "-d", dest="data_path", type=definitions.PathType('dir'),
+	# 					help=textwrap.dedent("Path to data path for E2P2 release folder"))
+	parser.add_argument("--blast_weight", "-bw", dest="blast_weight", type=definitions.PathType('file'),
 						help=textwrap.dedent("Path to blast weight for the blast classifier"))
-	parser.add_argument("--priam_resume", "-pr", dest="priam_resume", action='store_true',
-						help="Whether or not to resume a found PRIAM_search.jar process.")
+	parser.add_argument("--rpsd", "-r", dest="rpsd_db", type=definitions.PathType('blastdb'),
+						help=textwrap.dedent("Path to rpsd database name.\nFor example, \"/PATH/TO/FOLDER/rpsd.fa\", "
+											 "where you can find the following files in /PATH/TO/FOLDER:\n"
+											 "rpsd.fa.phr; rpsd.fa.pin; rpsd.fa.psq"))
+	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", type=definitions.PathType('profiles'),
+						help=textwrap.dedent("Path to PRIAM profiles.\nFor example, \"/PATH/TO/FOLDER/profiles\", "
+											 "where you can find the following in /PATH/TO/FOLDER:\n"
+											 "files: annotation_rules.xml; genome_rules.xml\n"
+											 "PROFILES: Folder contains \"LIBRARY\" folder and multiple \".chk\" files."))
+	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
+						help=textwrap.dedent("Path to blast weight for the priam classifier"))
 	parser.add_argument("--threshold", "-th", dest="threshold", type=float, default="0.5",
 						help="Threshold for voting results. Default is 0.5.")
 	parser.add_argument("--temp_folder", "-tf", dest="temp_folder", type=definitions.PathType('dir'),
@@ -245,6 +255,14 @@ if __name__ == '__main__':
 			sys.exit(1)
 	else:
 		blast_bin_path = args.blast_bin
+
+	if args.rpsd_db is None:
+		logger.log(logging.ERROR, "RPSD blast database not found from path %s." % args.rpsd_db)
+		sys.exit(1)
+	if args.priam_profile is None:
+		logger.log(logging.ERROR, "PRIAM profiles not found from path %s." % args.blastp_cmd)
+		sys.exit(1)
+
 	if args.blast_weight is None:
 		blast_weight_path = definitions.BLAST_WEIGHT
 	else:

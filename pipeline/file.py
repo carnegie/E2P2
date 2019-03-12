@@ -82,7 +82,6 @@ class E2P2files(object):
 					continue
 		return output_path
 
-
 	def read_efmap(self, ef_map_path, logging_level, logger_name):
 		logger = logging.getLogger(logger_name)
 		try:
@@ -283,7 +282,7 @@ class E2P2files(object):
 							try:
 								gene_id = prot_gene_map_dict[seq_id][0]
 								op.write("ID\t%s\nNAME\t%s\nPRODUCT-ACCESSION\t%s\nPRODUCT-TYPE\tP\n" % (
-								gene_id, gene_id, seq_id))
+									gene_id, gene_id, seq_id))
 								op.write('\n'.join(pf_ids) + '\n')
 								op.write("//\n")
 							except KeyError:
