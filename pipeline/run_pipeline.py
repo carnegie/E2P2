@@ -97,7 +97,7 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight,rps
 		# Add classifer predictions to E2P2 Output for detailed results
 		e2p2.add_predictions_of_classifer(bc)
 		e2p2.add_predictions_of_classifer(pc)
-		e2p2.read_efmap(definitions.EF_CLASS_MAP, logging_level, definitions.DEFAULT_LOGGER_NAME)
+		e2p2.read_efmap(ef_map_path, logging_level, definitions.DEFAULT_LOGGER_NAME)
 		# Write Outputs
 		e2p2.write_short_results(definitions.DEFAULT_ENSEMBLE_METHOD + " (" + str(threshold) + ")",
 								 e2p2_short_output, logging_level, definitions.DEFAULT_LOGGER_NAME)
@@ -181,6 +181,8 @@ if __name__ == '__main__':
 											 "PROFILES: Folder contains \"LIBRARY\" folder and multiple \".chk\" files."))
 	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
 						help=textwrap.dedent("Path to blast weight for the priam classifier"))
+	parser.add_argument("--efmap", "-e", dest="ef_map", type=definitions.PathType('file'),
+						help="Path to efclasses.mapping file.")
 	parser.add_argument("--threshold", "-th", dest="threshold", type=float, default="0.5",
 						help="Threshold for voting results. Default is 0.5.")
 	parser.add_argument("--temp_folder", "-tf", dest="temp_folder", type=definitions.PathType('dir'),
@@ -263,6 +265,10 @@ if __name__ == '__main__':
 		logger.log(logging.ERROR, "PRIAM profiles not found from path %s." % args.blastp_cmd)
 		sys.exit(1)
 
+	if args.ef_map is None:
+		ef_map_path = definitions.EF_CLASS_MAP
+	else:
+		ef_map_path = args.ef_map
 	if args.blast_weight is None:
 		blast_weight_path = definitions.BLAST_WEIGHT
 	else:
