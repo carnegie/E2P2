@@ -57,9 +57,12 @@ def get_blastp_bin_for_priam(blastp_cmd, logging_level, logger_name):
 		return None
 
 
-def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight,rpsd_db_name_path, blast_output_path, num_threads,
-					  java_cmd, priam_search_jar, priam_weight, blast_bin_path, priam_profiles_path, priam_output_path, priam_resume,
-					  threshold, e2p2_short_output, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output, e2p2_final_pf_output,
+def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight, rpsd_db_name_path, blast_output_path,
+					  num_threads,
+					  java_cmd, priam_search_jar, priam_weight, blast_bin_path, priam_profiles_path, priam_output_path,
+					  priam_resume,
+					  threshold, e2p2_short_output, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
+					  e2p2_final_pf_output,
 					  logging_level, protein_gene_path=None):
 	logger = logging.getLogger(definitions.DEFAULT_LOGGER_NAME)
 	# Set up object for running classifiers
@@ -170,11 +173,11 @@ if __name__ == '__main__':
 	# 					help=textwrap.dedent("Path to data path for E2P2 release folder"))
 	parser.add_argument("--blast_weight", "-bw", dest="blast_weight", type=definitions.PathType('file'),
 						help=textwrap.dedent("Path to blast weight for the blast classifier"))
-	parser.add_argument("--rpsd", "-r", dest="rpsd_db", type=definitions.PathType('blastdb'),
+	parser.add_argument("--rpsd", "-r", dest="rpsd_db", required=True, type=definitions.PathType('blastdb'),
 						help=textwrap.dedent("Path to rpsd database name.\nFor example, \"/PATH/TO/FOLDER/rpsd.fa\", "
 											 "where you can find the following files in /PATH/TO/FOLDER:\n"
 											 "rpsd.fa.phr; rpsd.fa.pin; rpsd.fa.psq"))
-	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", type=definitions.PathType('profiles'),
+	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", required=True, type=definitions.PathType('profiles'),
 						help=textwrap.dedent("Path to PRIAM profiles.\nFor example, \"/PATH/TO/FOLDER/profiles\", "
 											 "where you can find the following in /PATH/TO/FOLDER:\n"
 											 "files: annotation_rules.xml; genome_rules.xml\n"
@@ -202,6 +205,7 @@ if __name__ == '__main__':
 	input_path_folder = os.path.dirname(args.input_file)
 	input_file_name = os.path.basename(args.input_file)
 	input_file_path = args.input_file
+	file.E2P2files(None).check_fasta_header(input_file_path, definitions.DEFAULT_LOGGER_NAME)
 	if args.output_path is None:
 		output_path = input_file_path + definitions.DEFAULT_OUTPUT_SUFFIX
 	else:
@@ -292,8 +296,8 @@ if __name__ == '__main__':
 
 	if args.protein_gene_path is not None:
 		input_file_path = file.E2P2files(None).remove_splice_variants(input_file_path, output_folder,
-																  args.protein_gene_path, logger_handler_level,
-																  definitions.DEFAULT_LOGGER_NAME)
+																	  args.protein_gene_path, logger_handler_level,
+																	  definitions.DEFAULT_LOGGER_NAME)
 		if os.path.isfile(e2p2_final_pf_output):
 			logger.log(logging.WARNING, "Output file %s exists, will overwrite..." % e2p2_final_pf_output)
 
@@ -306,8 +310,11 @@ if __name__ == '__main__':
 			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will resume..." % priam_output_path)
 		else:
 			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will overwrite..." % priam_output_path)
-	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, blast_weight_path, args.rpsd_db, blastp_output_path, args.num_threads,
-					  args.java_cmd, args.priam_search, priam_weight_path, blast_bin_path, args.priam_profile, temp_folder,
-					  args.priam_resume, float(args.threshold), output_path, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
+	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, blast_weight_path, args.rpsd_db, blastp_output_path,
+					  args.num_threads,
+					  args.java_cmd, args.priam_search, priam_weight_path, blast_bin_path, args.priam_profile,
+					  temp_folder,
+					  args.priam_resume, float(args.threshold), output_path, e2p2_long_output, e2p2_pf_output,
+					  e2p2_orxn_pf_output,
 					  e2p2_final_pf_output, logger_handler_level, args.protein_gene_path)
 	logger.log(logging.INFO, "Intermediate files are in the directory: %s" % temp_folder)

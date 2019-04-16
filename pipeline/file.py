@@ -6,6 +6,7 @@ import re
 import sys
 
 # pipeline modules
+import definitions
 import prog
 
 
@@ -43,6 +44,25 @@ class E2P2files(object):
 			else:
 				seq.append(line)
 		if header: yield (header, '\n'.join(seq))
+
+	def check_fasta_header(self, fasta_path, logger_name):
+		logger = logging.getLogger(logger_name)
+		existing_headers = []
+		with open(fasta_path, 'r') as fp:
+			for header, seq in self.read_fasta(fp):
+				try:
+					header_info = re.split('[|\s]+', header)
+					header_id = header_info[0].replace('>', '', 1)
+					if len(header_id) > definitions.DEFAULT_PTOOLS_CHAR_LIMIT:
+						logger.log(logging.WARNING, "ID exceeds Pathway-Tools character limit: %s", header_id)
+					if header_id in existing_headers:
+						logger.log(logging.ERROR, "Duplicate IDs", header_id)
+						break
+					else:
+						existing_headers.append(header_id)
+				except (IndexError, KeyError):
+					logger.log(logging.WARNING, "Cannot Parse Header: %s", header)
+					continue
 
 	def remove_splice_variants(self, fasta_path, output_dir, prot_gene_map, logging_level, logger_name):
 		logger = logging.getLogger(logger_name)
@@ -207,8 +227,10 @@ class E2P2files(object):
 						metacyc_ids = set()
 						for ef_class in sorted(predictions):
 							try:
-								metacyc_ids.update([i for i in self.efmap[ef_class] if "RXN" in i])
-								ec_ids = [i for i in self.efmap[ef_class] if "RXN" not in i]
+								metacyc_ids.update([i for i in self.efmap[ef_class] if "RXN" in i and
+													i not in to_remove_non_small_molecule_metabolism_list])
+								ec_ids = [i for i in self.efmap[ef_class] if "RXN" not in i and
+										  i not in to_remove_non_small_molecule_metabolism_list]
 								ec_ids_updated = set()
 								for ec in ec_ids:
 									try:
@@ -258,8 +280,10 @@ class E2P2files(object):
 						metacyc_ids = set()
 						for ef_class in sorted(predictions):
 							try:
-								metacyc_ids.update([i for i in self.efmap[ef_class] if "RXN" in i])
-								ec_ids = [i for i in self.efmap[ef_class] if "RXN" not in i]
+								metacyc_ids.update([i for i in self.efmap[ef_class] if "RXN" in i and
+													i not in to_remove_non_small_molecule_metabolism_list])
+								ec_ids = [i for i in self.efmap[ef_class] if "RXN" not in i and
+										  i not in to_remove_non_small_molecule_metabolism_list]
 								ec_ids_updated = set()
 								for ec in ec_ids:
 									try:
