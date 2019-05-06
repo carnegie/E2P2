@@ -1,3 +1,10 @@
+"""
+Name:			file
+Author:			Bo Xue, Chuan Wang, Lee Chae
+Description:	The file module implements functions related to file I/O needed by
+				E2P2 (Ensemble Enzyme Prediction Pipeline). Updated for Python 3.
+
+"""
 import datetime
 import logging
 import logging.config
@@ -11,6 +18,9 @@ import prog
 
 
 class E2P2files(object):
+	"""Object for running E2P2 file I/Os
+	"""
+
 	def __init__(self, final_prediction):
 		self.final_prediction = final_prediction
 		self.efmap = {}
@@ -19,6 +29,15 @@ class E2P2files(object):
 
 	@staticmethod
 	def read_pf_maps(file_path, key_idx, val_idx):
+		"""Read Tab-delimited Files
+		Args:
+			file_path: Path to mapping file
+			key_idx: Index for keys
+			val_idx: Index for values
+		Raises: KeyError, IndexError
+		Returns:
+			mapping_dict: Dict containing the map
+		"""
 		mapping_dict = {}
 		with open(file_path, 'r') as fp:
 			for line in fp:
@@ -35,6 +54,14 @@ class E2P2files(object):
 
 	@staticmethod
 	def read_fasta(fp):
+		"""Iterator for reading fasta files
+		Args:
+			fp: file pointer to fasta file
+		Raises:
+		Yields:
+			header: fasta header
+			seq: fasta sequence
+		"""
 		header, seq = None, []
 		for line in fp:
 			line = line.rstrip()
@@ -46,6 +73,13 @@ class E2P2files(object):
 		if header: yield (header, '\n'.join(seq))
 
 	def check_fasta_header(self, fasta_path, logger_name):
+		"""Warn if fasta sequence ID length increases Pathway Tools current limit
+		Args:
+			fasta_path: The path to fasta input
+			logger_name: The name of the logger for checking fasta header
+		Raises: IndexError, KeyError
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 		existing_headers = []
 		with open(fasta_path, 'r') as fp:
@@ -65,6 +99,16 @@ class E2P2files(object):
 					continue
 
 	def remove_splice_variants(self, fasta_path, output_dir, prot_gene_map, logging_level, logger_name):
+		"""Remove splice variants from input fasta
+		Args:
+			fasta_path: Path to fasta input
+			output_dir: Path to splice variants removed fasta output
+			prot_gene_map: Path to Mapping file of protein IDs to gene IDs.
+			logging_level: The logging level set for remove splice variants
+			logger_name: The name of the logger for remove splice variants
+		Raises: IndexError, KeyError
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 		fasta_dict = {}
 		# The input's header should already be formatted
@@ -103,6 +147,14 @@ class E2P2files(object):
 		return output_path
 
 	def read_efmap(self, ef_map_path, logging_level, logger_name):
+		"""Read in EF (Enzyme Function) classes to Metacyc ID/EC number mapping file
+		Args:
+			ef_map_path: Path to enzyme function classes mapping file
+			logging_level: The logging level set for read efmap
+			logger_name: The name of the logger for read efmap
+		Raises: KeyError
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 		try:
 			logger.log(prog.logging_levels[logging_level], "Loading efmap: \"" + ef_map_path + "\"")
@@ -111,12 +163,27 @@ class E2P2files(object):
 		self.efmap = self.read_pf_maps(ef_map_path, 0, 1)
 
 	def add_predictions_of_classifer(self, classifier):
+		"""Add a Predictions class to E2P2files
+		Args:
+			classifier: A Predictions class from a classifier
+		Raises: AttributeError
+		Returns:
+		"""
 		try:
 			self.predictions_of_classifers.setdefault(classifier.classifier_name, classifier)
 		except AttributeError:
 			pass
 
 	def write_short_results(self, ensemble_method, output_path, logging_level, logger_name):
+		"""Write E2P2 short version of result to output
+		Args:
+			ensemble_method: Method of ensemble for all classifiers
+			output_path: Path to output for short version of result
+			logging_level: The logging level set for write short results
+			logger_name: The name of the logger for write short results
+		Raises: AttributeError, KeyError
+		Returns:
+		"""
 		cur_time = datetime.datetime.now()
 		logger = logging.getLogger(logger_name)
 		header = "# Result Generate time:  %s\n" \
@@ -140,6 +207,15 @@ class E2P2files(object):
 			logger.log(logging.DEBUG, "Results written to: \"" + output_path + "\"")
 
 	def write_long_results(self, ensemble_method, output_path, logging_level, logger_name):
+		"""Write E2P2 long version of result to output
+		Args:
+			ensemble_method: Method of ensemble for all classifiers
+			output_path: Path to output for detailed version of result
+			logging_level: The logging level set for write long results
+			logger_name: The name of the logger for write long results
+		Raises: AttributeError, KeyError
+		Returns:
+		"""
 		cur_time = datetime.datetime.now()
 		logger = logging.getLogger(logger_name)
 		header = "# Result Generate time:  %s\n" \
@@ -184,6 +260,14 @@ class E2P2files(object):
 			logger.log(logging.DEBUG, "Results (long) written to: \"" + output_path + "\"")
 
 	def write_pf_results(self, output_path, logging_level, logger_name):
+		"""Write E2P2 pf result to output
+		Args:
+			output_path: Path to output for pf result, used for Pathway Tools Pathologic input
+			logging_level: The logging level set for write pf results
+			logger_name: The name of the logger for write pf results
+		Raises: KeyError
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 		if len(self.efmap) > 0:
 			with open(output_path, 'w') as op:
@@ -210,6 +294,19 @@ class E2P2files(object):
 
 	def write_orxn_pf_results(self, output_path, ec_superseded, metacyc_rxn_ec, official_ec_metacyc_rxn,
 							  to_remove_non_small_molecule_metabolism, logging_level, logger_name):
+		"""Write E2P2 orxn pf result to output
+		Args:
+			output_path: Path to output for pf result where all reactions are mapped to MetaCyc RXN-ID,
+						 used for Pathway Tools Pathologic input
+			ec_superseded: Path to EC number superseded map
+			metacyc_rxn_ec: Path to Metacyc RXN-ID to EC number map
+			official_ec_metacyc_rxn: Path to official EC number to Metacyc RXN-ID map
+			to_remove_non_small_molecule_metabolism: Path to macro molecule metabolism list
+			logging_level: The logging level set for write orxn pf results
+			logger_name: The name of the logger for write orxn pf results
+		Raises: KeyError
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 
 		ec_superseded_dict = self.read_pf_maps(ec_superseded, 2, 0)
@@ -263,6 +360,20 @@ class E2P2files(object):
 
 	def write_final_pf_results(self, output_path, ec_superseded, metacyc_rxn_ec, official_ec_metacyc_rxn,
 							   to_remove_non_small_molecule_metabolism, prot_gene_map, logging_level, logger_name):
+		"""Write E2P2 final pf result to output
+		Args:
+			output_path: Path to output for pf result where all reactions are mapped to MetaCyc RXN-ID,
+						 and reformatted using Gene ID as 'UNIQUE-ID', used for Pathway Tools Pathologic input
+			ec_superseded: Path to EC number superseded map
+			metacyc_rxn_ec: Path to Metacyc RXN-ID to EC number map
+			official_ec_metacyc_rxn: Path to official EC number to Metacyc RXN-ID map
+			to_remove_non_small_molecule_metabolism: Path to macro molecule metabolism list
+			prot_gene_map: Path to Mapping file of protein IDs to gene IDs.
+			logging_level: The logging level set for write orxn pf results
+			logger_name: The name of the logger for write orxn pf results
+		Raises: KeyError
+		Returns:
+		"""
 		logger = logging.getLogger(logger_name)
 
 		ec_superseded_dict = self.read_pf_maps(ec_superseded, 2, 0)

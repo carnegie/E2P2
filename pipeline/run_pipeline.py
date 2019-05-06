@@ -18,6 +18,14 @@ import prog
 
 
 def check_commands_executable(cmd_to_test_list, logging_level, logger_name):
+	"""Check if commands are usable
+	Args:
+		cmd_to_test_list: List of commands to test
+		logging_level: The logging level set for check commands executable
+		logger_name: The name of the logger for check commands executable
+	Raises:
+	Returns:
+	"""
 	q = multiprocessing.Queue()
 	new_process = prog.RunProcess()
 	for cmd in cmd_to_test_list:
@@ -38,6 +46,14 @@ def check_commands_executable(cmd_to_test_list, logging_level, logger_name):
 
 
 def get_blastp_bin_for_priam(blastp_cmd, logging_level, logger_name):
+	"""Retrieve "bin" folder from "blastp" command path for PRIAM_search.jar
+	Args:
+		blastp_cmd: Path to blastp command
+		logging_level: The logging level set for get blastp bin for priam
+		logger_name: The name of the logger for get blastp bin for priam
+	Raises:
+	Returns:
+	"""
 	q = multiprocessing.Queue()
 	new_process = prog.RunProcess()
 	new_process.add_process_to_workers(q, logging_level, logger_name, ['which', blastp_cmd])
@@ -64,6 +80,33 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight, rp
 					  threshold, e2p2_short_output, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
 					  e2p2_final_pf_output,
 					  logging_level, protein_gene_path=None):
+	"""Function of the running E2P2 pipeline
+	Args:
+		time_stamp: Time stamp of running the E2P2 pipeline
+		input_fasta_path: Path to fasta input
+		blastp_cmd: Path to blastp command
+		blast_weight: Path to BLAST classifier weight mapping file
+		rpsd_db_name_path: Path to BLAST classifier RPSD database "name"
+		blast_output_path: Path to 'blastp' output
+		num_threads: Number of threads to run 'blastp'
+		java_cmd: Path to java command
+		priam_search_jar: Path to 'PRIAM_search.jar'
+		priam_weight: Path to PRIAM classifier weight mapping file
+		blast_bin_path: Path to BLAST 'bin' folder
+		priam_profiles_path: Path to PRIAM classifier PRIAM profiles folder
+		priam_output_path: Path to 'PRIAM_search.jar' output
+		priam_resume: Flag for whether to resume an existing PRIAM job
+		threshold: Threshold for E2P2 ensemble
+		e2p2_short_output: Path to E2P2 short output
+		e2p2_long_output: Path to E2P2 long output
+		e2p2_pf_output: Path to E2P2 pf output
+		e2p2_orxn_pf_output: Path to E2P2 orxn pf output
+		e2p2_final_pf_output: Path to E2P2 final pf output
+		logging_level: The logging level set for run e2p2 pipeline
+		protein_gene_path: Path to protein ID to gene ID mapping file
+	Raises: KeyError
+	Returns:
+	"""
 	logger = logging.getLogger(definitions.DEFAULT_LOGGER_NAME)
 	# Set up object for running classifiers
 	rc = ensemble.RunClassifiers(time_stamp)
@@ -201,16 +244,19 @@ if __name__ == '__main__':
 	parser.add_argument("--verbose", "-v", dest="verbose", default="0", choices=["0", "1"],
 						help=textwrap.dedent(verbose_message))
 	args = parser.parse_args()
+	# Generate time stamp for process
 	timestamp = str(time.time())
 	input_path_folder = os.path.dirname(args.input_file)
 	input_file_name = os.path.basename(args.input_file)
 	input_file_path = args.input_file
 	file.E2P2files(None).check_fasta_header(input_file_path, definitions.DEFAULT_LOGGER_NAME)
+	# Setup output paths
 	if args.output_path is None:
 		output_path = input_file_path + definitions.DEFAULT_OUTPUT_SUFFIX
 	else:
 		output_path = args.output_path
 	output_folder = os.path.dirname(output_path)
+	# Setup temp folder path
 	if args.temp_folder is None:
 		temp_folder = args.input_file + '.' + timestamp
 	else:
@@ -223,6 +269,7 @@ if __name__ == '__main__':
 		if exc.errno != errno.EEXIST:
 			raise
 		pass
+	# Setup logging file path
 	if args.log_path is None:
 		log_path = os.path.join(temp_folder, 'rune2p2.' + timestamp + '.log')
 	else:
@@ -250,9 +297,11 @@ if __name__ == '__main__':
 		else:
 			logger.log(prog.logging_levels[logger_handler_level], "Using path %s as temp folder." % temp_folder)
 
+	# Check if commands are executable
 	cmd_list = [args.blastp_cmd, args.java_cmd]
 	check_commands_executable(cmd_list, logger_handler_level, definitions.DEFAULT_LOGGER_NAME)
 
+	# Setup third party executables
 	if args.blast_bin is None:
 		blast_bin_path = get_blastp_bin_for_priam(args.blastp_cmd, logger_handler_level,
 												  definitions.DEFAULT_LOGGER_NAME)
@@ -269,6 +318,7 @@ if __name__ == '__main__':
 		logger.log(logging.ERROR, "PRIAM profiles not found from path %s." % args.blastp_cmd)
 		sys.exit(1)
 
+	# Setup E2P2 weight files
 	if args.ef_map is None:
 		ef_map_path = definitions.EF_CLASS_MAP
 	else:
@@ -281,6 +331,8 @@ if __name__ == '__main__':
 		priam_weight_path = definitions.PRIAM_WEIGHT
 	else:
 		priam_weight_path = args.priam_weight
+
+	# Setup E2P2 output paths
 	e2p2_long_output = output_path + definitions.DEFAULT_LONG_OUTPUT_SUFFIX
 	e2p2_pf_output = output_path + definitions.DEFAULT_PF_OUTPUT_SUFFIX
 	e2p2_orxn_pf_output = output_path + definitions.DEFAULT_ORXN_PF_OUTPUT_SUFFIX
@@ -310,6 +362,8 @@ if __name__ == '__main__':
 			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will resume..." % priam_output_path)
 		else:
 			logger.log(logging.WARNING, "Path %s for PRIAM result exists, will overwrite..." % priam_output_path)
+
+	# Run E2P2
 	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, blast_weight_path, args.rpsd_db, blastp_output_path,
 					  args.num_threads,
 					  args.java_cmd, args.priam_search, priam_weight_path, blast_bin_path, args.priam_profile,

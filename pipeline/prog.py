@@ -1,6 +1,5 @@
 """
 Name:         prog
-Version:      180123
 Author:       Bo Xue
 Description:  The prog module implements useful objects for running processes and logging
 """
@@ -51,14 +50,14 @@ class LoggerConfig(object):
 
 	def add_new_logger(self, logger_name, logger_handler_filename, logger_handler_level="INFO", logger_handler_mode='w'):
 		"""Adding a new Logger to dictConfig
-			Args:
-				logger_name: Name of the new Logger
-				logger_handler_name: Name of the handler
-				logger_handler_filename: Path to the log
-				logger_handler_level: Logger lever, from [DEBUG, INFO, WARNING, ERROR, CRITICAL]
-				logger_handler_mode:
-			Raises:
-			Returns:
+		Args:
+			logger_name: Name of the new Logger
+			logger_handler_name: Name of the handler
+			logger_handler_filename: Path to the log
+			logger_handler_level: Logger lever, from [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+			logger_handler_mode: IO mode for logger
+		Raises:
+		Returns:
 		"""
 		logger_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 		new_logger = {

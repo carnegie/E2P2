@@ -1,7 +1,15 @@
+"""
+Name:			definitions
+Author:			Bo Xue, Chuan Wang, Lee Chae
+Description:	The definitions module defines default variables needed by
+				E2P2 (Ensemble Enzyme Prediction Pipeline). Updated for Python 3.
+
+"""
+
 from argparse import ArgumentTypeError
 import os
 
-# Directory Set Up
+# Default Directory Set Up
 ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(ROOT_DIR), 'data')
 MAPS_DIR = os.path.join(DATA_DIR, 'maps')
@@ -48,7 +56,6 @@ class PathType(object):
 		'''
 		type: file, dir, parent, 'blastdb', 'blastbin', 'profiles', None, or a function returning True for valid paths
 		'''
-
 		assert type in ('file', 'dir', 'parent', 'blastdb', 'blastbin', 'profiles', None) or hasattr(type, '__call__')
 		self._type = type
 

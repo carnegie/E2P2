@@ -1,10 +1,9 @@
 """
 Name:			ensemble
-Version:		180123
 Author:			Bo Xue, Chuan Wang, Lee Chae
 Description:	The ensemble module implements ensemble integration algorithms needed by
 				E2P2 (Ensemble Enzyme Prediction Pipeline) to provide a final classification
-				for a given query protein. Updated for Python 3
+				for a given query protein. Updated for Python 3.
 
 """
 import logging
@@ -38,7 +37,7 @@ class RunClassifiers(object):
 			path_to_output: Path to the blastp output
 			logging_level: The logging level set for reading weight file
 			logger_name: The name of the logger for reading weight file
-		Raises:
+		Raises: ValueError, KeyError
 		Returns:
 		"""
 		logger = logging.getLogger(logger_name)
@@ -72,7 +71,7 @@ class RunClassifiers(object):
 			logging_level: The logging level set for running PRIAM_search.jar
 			logger_name: The name of the logger for running PRIAM_search.jar
 			resume: Whether or not to resume a preexisting job.
-		Raises:
+		Raises: KeyError
 		Returns:
 		"""
 		logger = logging.getLogger(logger_name)
@@ -122,7 +121,7 @@ class Predictions(object):
 			path_to_weight: path to the weight file of a classifier
 			logging_level: The logging level set for reading weight file
 			logger_name: The name of the logger for reading weight file
-		Raises:
+		Raises: KeyError, IOError
 		Returns:
 		"""
 		logger = logging.getLogger(logger_name)
@@ -149,7 +148,7 @@ class Predictions(object):
 		"""Iterator to read PRIAM sequenceEC.txt file
 		Args:
 			sequence_ecs_fp: file pointer to sequenceEC.txt
-		Raises:
+		Raises: ValueError, IndexError
 		Returns:
 		"""
 		query_id, priam_results = '', []
@@ -184,7 +183,7 @@ class Predictions(object):
 			path_to_blast_out: path to the output file of blast
 			logging_level: The logging level set for blast prediction
 			logger_name: The name of the logger for blast prediction
-		Raises:
+		Raises: KeyError, ValueError, IOError
 		Returns:
 		"""
 		self.read_weight_file(path_to_blast_weight, logging_level, logger_name)
@@ -242,7 +241,7 @@ class Predictions(object):
 			path_to_sequence_ecs: path to the sequenceEC.txt
 			logging_level: The logging level set for priam prediction
 			logger_name: The name of the logger for priam prediction
-		Raises:
+		Raises: KeyError, IOError
 		Returns:
 		"""
 		self.read_weight_file(path_to_priam_weight, logging_level, logger_name)
@@ -304,7 +303,7 @@ class Ensemble(object):
 			Args:
 				logging_level: The logging level set for maximum weight voting
 				logger_name: The name of the logger for maximum weight voting
-			Raises:
+			Raises: KeyError
 			Returns:
 		"""
 		logger = logging.getLogger(logger_name)
@@ -338,7 +337,7 @@ class Ensemble(object):
 				threshold: the threshold to calculate absolute threshold for the prediction
 				logging_level: The logging level set for maximum weight voting
 				logger_name: The name of the logger for maximum weight voting
-			Raises:
+			Raises: KeyError
 			Returns:
 		"""
 		logger = logging.getLogger(logger_name)
