@@ -37,28 +37,45 @@ python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fa
 
 ### Required Arguments
     --input INPUT_FILE, -i INPUT_FILE: Path to input protein sequences file
+    
     --blastp BLASTP_CMD, -b BLASTP_CMD: Command of or path to NCBI BLAST+ "blastp" executable.
+    
     --java JAVA_CMD, -j JAVA_CMD: Command of or path to "java" executable.
+    
     --priam_search PRIAM_SEARCH, -ps PRIAM_SEARCH: Path to "PRIAM_search.jar" executable.
+    
     --rpsd RPSD_DB, -r RPSD_DB: Path to RPSD BLAST database name.
       For example, "/PATH/TO/FOLDER/rpsd.fa", where you can find the following files in /PATH/TO/FOLDER: rpsd.fa.phr; rpsd.fa.pin; rpsd.fa.psq
+      
     --priam_profile PRIAM_PROFILE, -pp PRIAM_PROFILE: Path to PRIAM profiles.
       For example, "/PATH/TO/FOLDER/profiles", where you can find the following in /PATH/TO/FOLDER/profiles:
         files: annotation_rules.xml; genome_rules.xml
         folder: PROFILES: this contains a "LIBRARY" folder and multiple ".chk" files.
 ### Optional Arguments
     -h, --help: Show help message and exit
+    
     --output OUTPUT_PATH, -o OUTPUT_PATH: Path to output file. By Default it would be in the same folder of the input.
+    
     --num_threads NUM_THREADS, -n NUM_THREADS: Number of threads to run "blastp". Default is 1
+    
     --priam_resume, -pr: Whether or not to resume process if a unfinished PRIAM_search.jar process is found.
+    
     --blast_bin BLAST_BIN, -bb BLAST_BIN: Command of or path to NCBI BLAST+ bin folder. By Default, the pipeline would try to retrieve the path from the '--blastp/-b' input path.
+    
     --blast_weight BLAST_WEIGHT, -bw BLAST_WEIGHT: Path to weight file for the blast classifier. By default, the path would be defined in the 'definitions' module
+    
     --priam_weight PRIAM_WEIGHT, -pw PRIAM_WEIGHT: Path to blast weight for the priam classifier
+    
     --efmap EF_MAP, -e EF_MAP: Path to Enzyme function class to Metacyc RXN-ID/EC Number file (efclasses.mapping).
+    
     --threshold THRESHOLD, -th THRESHOLD: Threshold for voting results. Default is 0.5.
+    
     --temp_folder TEMP_FOLDER, -tf TEMP_FOLDER: Specify the location of the temp folder that contains classifier results. By default it would be in the same directory of the output.
+    
     --log LOG_PATH, -l LOG_PATH: Specify the location of the log file. By default it would be "runE2P2.log" in the temp folder.
+    
     --protein_gene PROTEIN_GENE_PATH, -pg PROTEIN_GENE_PATH: Provide a protein to gene mapping file. This will be used to generate a splice variant removed fasta file and output our final version of e2p2.
+    
     --verbose {0,1}, -v {0,1}: Verbose level of log output. Default is 0.
        0: only step information are logged
        1: all information are logged
@@ -70,12 +87,22 @@ python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fa
 
 ## Authors
 
-* **Bo Xue** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Bo Xue** - [bxuecarnegie](https://github.com/bxuecarnegie)
+
+### Previous versions
+* **Chuan Wang**
+* **Lee Chae**
+
+## Institution
+    Plant Metabolic Network
+    Department of Plant Biology
+    Carnegie Institution for Science
+    Stanford, CA 94305
 
 
 ## Acknowledgments
 
 * Special Thanks to
-  * Thomas Bernard *PRIAM*
+  * Thomas Bernard - *PRIAM*
   * Biopython
-  * Billie Thompson *README Template*
+  * Billie Thompson - *README Template* - [PurpleBooth](https://github.com/PurpleBooth)
