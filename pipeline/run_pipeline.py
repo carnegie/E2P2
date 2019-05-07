@@ -215,18 +215,18 @@ if __name__ == '__main__':
 	# parser.add_argument("--data", "-d", dest="data_path", type=definitions.PathType('dir'),
 	# 					help=textwrap.dedent("Path to data path for E2P2 release folder"))
 	parser.add_argument("--blast_weight", "-bw", dest="blast_weight", type=definitions.PathType('file'),
-						help=textwrap.dedent("Path to blast weight for the blast classifier"))
+						help=textwrap.dedent("Path to weight file for the blast classifier"))
 	parser.add_argument("--rpsd", "-r", dest="rpsd_db", required=True, type=definitions.PathType('blastdb'),
-						help=textwrap.dedent("Path to rpsd database name.\nFor example, \"/PATH/TO/FOLDER/rpsd.fa\", "
+						help=textwrap.dedent("Path to rpsd blast database name.\nFor example, \"/PATH/TO/FOLDER/rpsd.fa\", "
 											 "where you can find the following files in /PATH/TO/FOLDER:\n"
 											 "rpsd.fa.phr; rpsd.fa.pin; rpsd.fa.psq"))
 	parser.add_argument("--priam_profile", "-pp", dest="priam_profile", required=True, type=definitions.PathType('profiles'),
 						help=textwrap.dedent("Path to PRIAM profiles.\nFor example, \"/PATH/TO/FOLDER/profiles\", "
-											 "where you can find the following in /PATH/TO/FOLDER:\n"
+											 "where you can find the following in /PATH/TO/FOLDER/profiles:\n"
 											 "files: annotation_rules.xml; genome_rules.xml\n"
-											 "PROFILES: Folder contains \"LIBRARY\" folder and multiple \".chk\" files."))
+											 "folders: PROFILES: Folder contains \"LIBRARY\" folder and multiple \".chk\" files."))
 	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
-						help=textwrap.dedent("Path to blast weight for the priam classifier"))
+						help=textwrap.dedent("Path to weight file for the priam classifier"))
 	parser.add_argument("--efmap", "-e", dest="ef_map", type=definitions.PathType('file'),
 						help="Path to efclasses.mapping file.")
 	parser.add_argument("--threshold", "-th", dest="threshold", type=float, default="0.5",

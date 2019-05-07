@@ -54,7 +54,7 @@ class E2P2files(object):
 
 	@staticmethod
 	def read_fasta(fp):
-		"""Iterator for reading fasta files
+		"""Iterator for reading fasta files. Source: Biopython
 		Args:
 			fp: file pointer to fasta file
 		Raises:
