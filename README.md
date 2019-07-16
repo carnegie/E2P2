@@ -10,7 +10,7 @@ This pipeline is tested on Ubuntu, CentOS, macOS and should theoretically run on
 * [Python 3](https://www.python.org/downloads/)
 * [NCBI BLAST+](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
 * [Java 1.5 or above](https://www.oracle.com/technetwork/java/javase/downloads/index.html)
-* [PRIAM_Search utility](http://priam.prabi.fr/REL_JAN18/index_jan18.html)
+* [PRIAM_Search utility V2](http://priam.prabi.fr/REL_JAN18/index_jan18.html)
 
 ### Installing
 
