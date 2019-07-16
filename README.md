@@ -90,7 +90,7 @@ python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fa
 * **Bo Xue** - [bxuecarnegie](https://github.com/bxuecarnegie)
 
 ### Previous versions
-* **Chuan Wang** - [Chuan Wang](https://github.com/grittyy）
+* **Chuan Wang** - [Chuan Wang](https://github.com/grittyy)
 * **Lee Chae**
 
 ## Institution
