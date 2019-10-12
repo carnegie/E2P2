@@ -104,4 +104,3 @@ python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fa
 
 * Special Thanks to
   * Thomas Bernard - *PRIAM*
-  * Biopython
