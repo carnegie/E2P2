@@ -30,7 +30,8 @@ tar -xzf weights.tar.gz
 tar -xzf maps.tar.gz
 
 # If you want to just use the required arguments with a different version of RPSD data, 
-# replace the "maps" and "weights" folders under "data" in "E2P2" using the above folders with the same name.
+# replace the "maps" and "weights" folders under "data" in "E2P2" using the above folders 
+# with the same name.
 ```
 
 ## Usage Example
