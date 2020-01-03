@@ -26,7 +26,6 @@ Unzip and extract RPSD data
 ```
 tar -xzf blastdb.tar.gz
 tar -xzf profiles.tar.gz
-# The following are not required to run the most current version of E2P2
 tar -xzf weights.tar.gz
 tar -xzf maps.tar.gz
 ```
