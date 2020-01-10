@@ -349,10 +349,12 @@ class E2P2files(object):
 										 m not in to_remove_non_small_molecule_metabolism_list])
 						pf_unofficial_ids = sorted(['METACYC\t' + m + '\n#unofficial' for m in metacyc_unofficial_ids if
 										 m not in to_remove_non_small_molecule_metabolism_list and m not in metacyc_ids])
-						if len(pf_ids) > 0:
+						if len(pf_ids) > 0 or len(pf_unofficial_ids) > 0:
 							op.write("ID\t%s\nNAME\t%s\nPRODUCT-TYPE\tP\n" % (seq_id, seq_id))
-							op.write('\n'.join(pf_ids) + '\n')
-							op.write('\n'.join(pf_unofficial_ids) + '\n')
+							if len(pf_ids) > 0:
+								op.write('\n'.join(pf_ids) + '\n')
+							if len(pf_unofficial_ids) > 0:
+								op.write('\n'.join(pf_unofficial_ids) + '\n')
 							op.write("//\n")
 			try:
 				logger.log(prog.logging_levels[logging_level], "Results (orxn) written to: \"" + output_path + "\"")
