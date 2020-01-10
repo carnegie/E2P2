@@ -26,14 +26,17 @@ Unzip and extract RPSD data
 ```
 tar -xzf blastdb.tar.gz
 tar -xzf profiles.tar.gz
-# The following are not required to run the most current version of E2P2
 tar -xzf weights.tar.gz
 tar -xzf maps.tar.gz
+
+# If you want to just use the required arguments with a different version of RPSD data, 
+# replace the "maps" and "weights" folders under "data" in "E2P2" using the above folders 
+# with the same name.
 ```
 
 ## Usage Example
 
-python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta --blastp blastp --java java --priam_search /PATH/TO/PRIAM_search.jar --rpsd /PATH/TO/blastdb/rpsd-4.2-20190307.fasta --priam_profile /PATH/TO/profiles
+python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta --blastp blastp --java java --priam_search /PATH/TO/PRIAM_search.jar --rpsd /PATH/TO/blastdb/rpsd-4.2.fasta --priam_profile /PATH/TO/profiles
 
 ### Required Arguments
     --input INPUT_FILE, -i INPUT_FILE: Path to input protein sequences file
