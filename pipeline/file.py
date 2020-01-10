@@ -322,6 +322,7 @@ class E2P2files(object):
 					predictions = self.final_prediction[seq_id]
 					if len(predictions) > 0:
 						metacyc_ids = set()
+						metacyc_unofficial_ids = set()
 						for ef_class in sorted(predictions):
 							try:
 								metacyc_ids.update([i for i in self.efmap[ef_class] if "RXN" in i and
@@ -340,15 +341,18 @@ class E2P2files(object):
 									if ec_updated in official_ec_metacyc_rxn_dict:
 										metacyc_ids.update(official_ec_metacyc_rxn_dict[ec_updated])
 									elif ec_updated in metacyc_rxn_ec_dict:
-										metacyc_ids.update(metacyc_rxn_ec_dict[ec_updated])
+										metacyc_unofficial_ids.update(metacyc_rxn_ec_dict[ec_updated])
 							except KeyError:
 								logger.log(logging.ERROR,
 										   "EF Class: \"" + ef_class + "\" assigned to \"" + seq_id + "\" not found in map.")
 						pf_ids = sorted(['METACYC\t' + m for m in metacyc_ids if
 										 m not in to_remove_non_small_molecule_metabolism_list])
+						pf_unofficial_ids = sorted(['METACYC\t' + m + '\n#unofficial' for m in metacyc_unofficial_ids if
+										 m not in to_remove_non_small_molecule_metabolism_list and m not in metacyc_ids])
 						if len(pf_ids) > 0:
 							op.write("ID\t%s\nNAME\t%s\nPRODUCT-TYPE\tP\n" % (seq_id, seq_id))
 							op.write('\n'.join(pf_ids) + '\n')
+							op.write('\n'.join(pf_unofficial_ids) + '\n')
 							op.write("//\n")
 			try:
 				logger.log(prog.logging_levels[logging_level], "Results (orxn) written to: \"" + output_path + "\"")
