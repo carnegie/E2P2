@@ -299,7 +299,6 @@ if __name__ == '__main__':
 
 	# Check if commands are executable
 	cmd_list = [args.blastp_cmd, args.java_cmd]
-	logger.log(logging.WARNING, "commande : %s" % cmd_list)
 	check_commands_executable(cmd_list, logger_handler_level, definitions.DEFAULT_LOGGER_NAME)
 
 	# Setup third party executables
