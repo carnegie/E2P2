@@ -29,13 +29,13 @@ def check_commands_executable(cmd_to_test_list, logging_level, logger_name):
 	q = multiprocessing.Queue()
 	new_process = prog.RunProcess()
 	for cmd in cmd_to_test_list:
-		new_process.add_process_to_workers(q, logging_level, logger_name, ['command', '-v', cmd])
+		new_process.add_process_to_workers(q, logging_level, logger_name, ['bash', '-c', 'command', '-v', cmd])
 
 	new_process.run_all_worker_processes(q)
 	executable_cmds = []
 	non_executable_cmds = []
 	for result in new_process.run_results:
-		cmd = re.sub(r'^command\s-v', '', result[0]).strip()
+		cmd = re.sub(r'^bash\s-c\scommand\s-v', '', result[0]).strip()
 		retcode = result[1]
 		# output = result[2]
 		if retcode == 0:
@@ -299,6 +299,7 @@ if __name__ == '__main__':
 
 	# Check if commands are executable
 	cmd_list = [args.blastp_cmd, args.java_cmd]
+	logger.log(logging.WARNING, "commande : %s" % cmd_list)
 	check_commands_executable(cmd_list, logger_handler_level, definitions.DEFAULT_LOGGER_NAME)
 
 	# Setup third party executables
