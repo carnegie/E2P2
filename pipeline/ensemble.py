@@ -27,7 +27,7 @@ class RunClassifiers(object):
 		self.classifier_processes = prog.RunProcess()
 		self.output_dict = {}
 
-	def blast_classifer(self, blastp_path, path_to_blast_db_basename, path_to_input, path_to_output, num_threads,
+	def blast_classifer(self, blastp_path, path_to_blast_db_basename, path_to_input, path_to_output, num_threads, evalue,
 						logging_level, logger_name):
 		"""Add subprocess of blastp
 		Args:
@@ -35,6 +35,7 @@ class RunClassifiers(object):
 			path_to_blast_db_basename: Name for the blast database
 			path_to_input: Path to the fasta input
 			path_to_output: Path to the blastp output
+			evalue: cutoff evalue
 			logging_level: The logging level set for reading weight file
 			logger_name: The name of the logger for reading weight file
 		Raises: ValueError, KeyError
@@ -47,8 +48,15 @@ class RunClassifiers(object):
 		except ValueError:
 			logger.log(logging.DEBUG, "num_threads input error, using \"1\" instead.")
 			num_threads = "1"
+
+		try:
+			evalue = str(float(evalue))
+		except ValueError:
+			logger.log(logging.DEBUG, "evalue input error, using \"10\" instead.")
+			evalue = 10
+
 		blast_cmd = [blastp_path, '-db', path_to_blast_db_basename, '-num_threads', num_threads,
-					 '-query', path_to_input, '-out', path_to_output, '-outfmt', '6']
+					 '-query', path_to_input, '-out', path_to_output, '-outfmt', '6', '-evalue', evalue]
 		try:
 			logger.log(prog.logging_levels[logging_level], "Setup process for blastp: \"" + " ".join(blast_cmd) + "\"")
 			self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd,

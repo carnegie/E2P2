@@ -75,7 +75,7 @@ def get_blastp_bin_for_priam(blastp_cmd, logging_level, logger_name):
 
 def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight, rpsd_db_name_path, blast_output_path,
 					  num_threads,
-					  java_cmd, priam_search_jar, priam_weight, blast_bin_path, priam_profiles_path, priam_output_path,
+					  java_cmd, priam_search_jar, blast_evalue, priam_weight, blast_bin_path, priam_profiles_path, priam_output_path,
 					  priam_resume,
 					  threshold, e2p2_short_output, e2p2_long_output, e2p2_pf_output, e2p2_orxn_pf_output,
 					  e2p2_final_pf_output,
@@ -111,7 +111,7 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight, rp
 	# Set up object for running classifiers
 	rc = ensemble.RunClassifiers(time_stamp)
 	# Run blastp classifier
-	rc.blast_classifer(blastp_cmd, rpsd_db_name_path, input_fasta_path, blast_output_path, num_threads, logging_level,
+	rc.blast_classifer(blastp_cmd, rpsd_db_name_path, input_fasta_path, blast_output_path, num_threads, blast_evalue, logging_level,
 					   definitions.DEFAULT_LOGGER_NAME)
 	# Run priam_search classifier
 	rc.priam_classifer(java_cmd, priam_search_jar, blast_bin_path, priam_profiles_path, input_fasta_path,
@@ -225,6 +225,8 @@ if __name__ == '__main__':
 											 "where you can find the following in /PATH/TO/FOLDER/profiles:\n"
 											 "files: annotation_rules.xml; genome_rules.xml\n"
 											 "folders: PROFILES: Folder contains \"LIBRARY\" folder and multiple \".chk\" files."))
+	parser.add_argument("--blast_evalue", "-be", dest="blast_evalue", type=float, default="10",
+						help=textwrap.dedent("Blastp e-value cutoff"))
 	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
 						help=textwrap.dedent("Path to weight file for the priam classifier"))
 	parser.add_argument("--efmap", "-e", dest="ef_map", type=definitions.PathType('file'),
@@ -366,7 +368,7 @@ if __name__ == '__main__':
 	# Run E2P2
 	run_e2p2_pipeline(timestamp, input_file_path, args.blastp_cmd, blast_weight_path, args.rpsd_db, blastp_output_path,
 					  args.num_threads,
-					  args.java_cmd, args.priam_search, priam_weight_path, blast_bin_path, args.priam_profile,
+					  args.java_cmd, args.priam_search, float(args.blast_evalue), priam_weight_path, blast_bin_path, args.priam_profile,
 					  temp_folder,
 					  args.priam_resume, float(args.threshold), output_path, e2p2_long_output, e2p2_pf_output,
 					  e2p2_orxn_pf_output,
