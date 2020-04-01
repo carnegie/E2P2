@@ -111,7 +111,7 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight, rp
 	# Set up object for running classifiers
 	rc = ensemble.RunClassifiers(time_stamp)
 	# Run blastp classifier
-	rc.blast_classifer(blastp_cmd, rpsd_db_name_path, input_fasta_path, blast_output_path, num_threads, blast_evalue, logging_level,
+	rc.blast_classifer(blastp_cmd, rpsd_db_name_path, input_fasta_path, blast_output_path, num_threads, logging_level,
 					   definitions.DEFAULT_LOGGER_NAME)
 	# Run priam_search classifier
 	rc.priam_classifer(java_cmd, priam_search_jar, blast_bin_path, priam_profiles_path, input_fasta_path,
@@ -122,7 +122,7 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight, rp
 		logger.log(logging.INFO, "Compiling predictions.")
 		# Read in prediction results
 		bc = ensemble.Predictions("Blast")
-		bc.generate_blast_predictions(blast_weight, rc.output_dict["blast"], logging_level,
+		bc.generate_blast_predictions(blast_weight, rc.output_dict["blast"], blast_evalue, logging_level,
 									  definitions.DEFAULT_LOGGER_NAME)
 		pc = ensemble.Predictions("Priam")
 		pc.generate_priam_predictions(priam_weight, rc.output_dict["priam"], logging_level,
@@ -225,7 +225,7 @@ if __name__ == '__main__':
 											 "where you can find the following in /PATH/TO/FOLDER/profiles:\n"
 											 "files: annotation_rules.xml; genome_rules.xml\n"
 											 "folders: PROFILES: Folder contains \"LIBRARY\" folder and multiple \".chk\" files."))
-	parser.add_argument("--blast_evalue", "-be", dest="blast_evalue", type=float, default="10",
+	parser.add_argument("--blast_evalue", "-be", dest="blast_evalue", type=float, default="1e-2",
 						help=textwrap.dedent("Blastp e-value cutoff"))
 	parser.add_argument("--priam_weight", "-pw", dest="priam_weight", type=definitions.PathType('file'),
 						help=textwrap.dedent("Path to weight file for the priam classifier"))
