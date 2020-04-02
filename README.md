@@ -67,7 +67,7 @@ python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fa
     
     --blast_weight BLAST_WEIGHT, -bw BLAST_WEIGHT: Path to weight file for the blast classifier. By default, the path would be defined in the 'definitions' module
     
-    --blast_evalue EVALUE, -be EVALUE: blastp evalue cutoff
+    --blast_evalue EVALUE, -be EVALUE: blastp evalue cutoff. Default is 1e-2
 
     --priam_weight PRIAM_WEIGHT, -pw PRIAM_WEIGHT: Path to blast weight for the priam classifier
     
