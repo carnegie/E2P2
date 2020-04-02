@@ -35,6 +35,7 @@ class RunClassifiers(object):
 			path_to_blast_db_basename: Name for the blast database
 			path_to_input: Path to the fasta input
 			path_to_output: Path to the blastp output
+			evalue: cutoff evalue
 			logging_level: The logging level set for reading weight file
 			logger_name: The name of the logger for reading weight file
 		Raises: ValueError, KeyError
@@ -47,6 +48,7 @@ class RunClassifiers(object):
 		except ValueError:
 			logger.log(logging.DEBUG, "num_threads input error, using \"1\" instead.")
 			num_threads = "1"
+
 		blast_cmd = [blastp_path, '-db', path_to_blast_db_basename, '-num_threads', num_threads,
 					 '-query', path_to_input, '-out', path_to_output, '-outfmt', '6']
 		try:
@@ -176,11 +178,12 @@ class Predictions(object):
 		if len(query_id) > 0:
 			yield query_id, priam_results
 
-	def generate_blast_predictions(self, path_to_blast_weight, path_to_blast_out, logging_level, logger_name):
+	def generate_blast_predictions(self, path_to_blast_weight, path_to_blast_out, evalue, logging_level, logger_name):
 		"""Read in the blast output and generate predictions
 		Args:
 			path_to_blast_weight:
 			path_to_blast_out: path to the output file of blast
+			evalue: threshold evalue
 			logging_level: The logging level set for blast prediction
 			logger_name: The name of the logger for blast prediction
 		Raises: KeyError, ValueError, IOError
@@ -204,7 +207,7 @@ class Predictions(object):
 					self.seq_list.add(query_id)
 					blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1]) if len(bh.strip()) > 0]
 					# Current e-value threshold is set to 0.01
-					if e_value > float("1e-2") or len(blast_hits) == 0:
+					if e_value > float(evalue) or len(blast_hits) == 0:
 						continue
 					try:
 						cur_e_vals = self.predictions[query_id]
