@@ -35,6 +35,10 @@ tar -xzf maps.tar.gz
 # with the same name.
 ```
 
+#### Singularity container
+A [Singularity instance](https://singularity.lbl.gov/docs-instances) for E2P2 is written and provided by **Ludo Cottret** - [lipme](https://github.com/lipme).
+You can find it at [e2p2-singularity](https://github.com/lipme/e2p2-singularity).
+
 ## Usage Example
 
 python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta --blastp blastp --java java --priam_search /PATH/TO/PRIAM_search.jar --rpsd /PATH/TO/blastdb/rpsd-4.2.fasta --priam_profile /PATH/TO/profiles
