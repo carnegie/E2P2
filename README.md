@@ -36,7 +36,7 @@ tar -xzf maps.tar.gz
 ```
 
 #### Singularity container
-A [Singularity instance](https://singularity.lbl.gov/docs-instances) for E2P2 is written and provided by **Ludo Cottret** - [lipme](https://github.com/lipme).
+A [Singularity instance](https://singularity.lbl.gov/docs-instances) for E2P2 is written and provided by **Ludo Cottret**([lipme](https://github.com/lipme)).
 You can find it at [e2p2-singularity](https://github.com/lipme/e2p2-singularity).
 
 ## Usage Example
