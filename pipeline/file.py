@@ -21,11 +21,23 @@ class E2P2files(object):
 	"""Object for running E2P2 file I/Os
 	"""
 
-	def __init__(self, final_prediction):
-		self.final_prediction = final_prediction
+	def __init__(self, final_prediction, input_fasta=None):
 		self.efmap = {}
 		self.predictions_of_classifers = {}
-		self.protein_to_gene_map = {}
+		if input_fasta:
+			input_seq_ids = set()
+			with open(input_fasta, 'r') as fp:
+				for header, seq in self.read_fasta(fp):
+					try:
+						header_info = re.split('[|\s]+', header)
+						header_id = header_info[0].replace('>', '', 1)
+						input_seq_ids.add(header_id)
+					except (IndexError, KeyError):
+						continue
+			for seq_id in sorted(input_seq_ids):
+				if seq_id not in final_prediction:
+					final_prediction.setdefault(seq_id, [])
+		self.final_prediction = final_prediction
 
 	@staticmethod
 	def read_pf_maps(file_path, key_idx, val_idx):

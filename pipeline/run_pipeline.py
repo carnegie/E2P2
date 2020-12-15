@@ -138,7 +138,7 @@ def run_e2p2_pipeline(time_stamp, input_fasta_path, blastp_cmd, blast_weight, rp
 		# Preform absolute threshold on classifiers voting results
 		en.absolute_threshold(threshold, logging_level, definitions.DEFAULT_LOGGER_NAME)
 		# Set up object for writing E2P2 output
-		e2p2 = file.E2P2files(en.final_predictions)
+		e2p2 = file.E2P2files(en.final_predictions, input_fasta_path)
 		logger.log(logging.INFO, "Preparing results files.")
 		# Add classifer predictions to E2P2 Output for detailed results
 		e2p2.add_predictions_of_classifer(bc)
