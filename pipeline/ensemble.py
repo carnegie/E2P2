@@ -207,24 +207,24 @@ class Predictions(object):
 					self.seq_list.add(query_id)
 					blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1]) if len(bh.strip()) > 0]
 					# Current e-value threshold is set to 0.01
-					if e_value > float(evalue) or len(blast_hits) == 0:
+					if e_value > float(evalue) or len(blast_hits) <= 1:
 						continue
 					try:
 						cur_e_vals = self.predictions[query_id]
 						best_e_val = min(cur_e_vals.values())
 						# Keep lowest e-value entries
 						if e_value < best_e_val:
-							for ef in blast_hits:
+							for ef in blast_hits[1:]:
 								try:
 									cur_e_vals[ef] = e_value
 								except KeyError:
 									self.predictions[query_id].setdefault(ef, e_value)
 							for ef in cur_e_vals:
-								if ef not in blast_hits:
+								if ef not in blast_hits[1:]:
 									self.predictions[query_id].pop(ef, None)
 					except KeyError:
 						self.predictions.setdefault(query_id, {})
-						for ef in blast_hits:
+						for ef in blast_hits[1:]:
 							self.predictions[query_id].setdefault(ef, e_value)
 		except IOError:
 			logger.log(logging.ERROR, "Blast output not found: \"" + path_to_blast_out + "\"")
