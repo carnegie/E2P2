@@ -191,6 +191,7 @@ class Predictions(object):
 		"""
 		self.read_weight_file(path_to_blast_weight, logging_level, logger_name)
 		logger = logging.getLogger(logger_name)
+		bitscore_dict = {}
 		try:
 			try:
 				logger.log(prog.logging_levels[logging_level], "Reading blast output: \"" + path_to_blast_out + "\"")
@@ -203,11 +204,16 @@ class Predictions(object):
 						e_value = float(info[-2])
 					except ValueError:
 						e_value = float("1" + info[-2])
+					try:
+						bitscore = float(info[-1])
+					except ValueError:
+						bitscore = float("1" + info[-1])
 					query_id = re.split(r'\s+|\|', info[0])[0]
 					self.seq_list.add(query_id)
+					cur_bitscore = bitscore_dict.setdefault(query_id, bitscore)
 					blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1]) if len(bh.strip()) > 0]
 					# Current e-value threshold is set to 0.01
-					if e_value > float(evalue) or len(blast_hits) <= 1:
+					if e_value > float(evalue) or len(blast_hits) <= 1 or bitscore < cur_bitscore:
 						continue
 					try:
 						cur_e_vals = self.predictions[query_id]
