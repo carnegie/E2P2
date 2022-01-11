@@ -139,7 +139,7 @@ class Predictions(object):
 						ef_name = info[0].strip()
 						ef_weight = info[1].strip()
 						self.weights.setdefault(ef_name, ef_weight)
-					except KeyError:
+					except (KeyError, IndexError) as e:
 						continue
 		except IOError:
 			logger.log(logging.ERROR, "Weight file not found: \"" + path_to_weight + "\"")
