@@ -10,6 +10,14 @@ from src.lib.util import read_e2p2_maps, logging_helper
 
 class PfFiles(object):
     def __init__(self, ensemble_class_or_predictions, input_proteins=None, logger_name=DEFAULT_LOGGER_NAME):
+        """Initialize class
+        Args:
+            ensemble_class_or_predictions: Input can be an Ensemble class or a prediction dictionary
+            input_proteins: List of input protein IDs
+            logger_name: The name of the logger
+        Raises: SystemError
+        Returns:
+        """
         if isinstance(ensemble_class_or_predictions, Ensemble):
             self.final_prediction = ensemble_class_or_predictions.get_prediction(input_proteins)
         elif type(ensemble_class_or_predictions) is dict:
@@ -188,7 +196,6 @@ class PfFiles(object):
         ec_superseded_dict = read_e2p2_maps(ec_superseded_path, 2, 0)
         metacyc_rxn_ec_dict = read_e2p2_maps(metacyc_rxn_ec_path, 1, 0)
         official_ec_metacyc_rxn_dict = read_e2p2_maps(official_ec_metacyc_rxn_path, 0, 1)
-        # metacyc_sub_reactions_dict = read_e2p2_maps(metacyc_sub_reactions, 0, 1)
         to_remove_metabolism_list = sorted(read_e2p2_maps(to_remove_metabolism_path, 0, 0).keys())
         if prot_gene_map_path is not None:
             prot_gene_map_dict = read_e2p2_maps(prot_gene_map_path, 0, 1)
@@ -210,7 +217,6 @@ class PfFiles(object):
                                                     i not in to_remove_metabolism_list])
                                 ec_ids = [i for i in ef_map_dict[ef_class] if "RXN" not in i and
                                           i not in to_remove_metabolism_list]
-                                # print(query, ef_map_dict[ef_class], set(ef_map_dict[ef_class]) - set(to_remove_metabolism_list))
                                 metacyc_from_ecs = self.map_ec_to_rxns(
                                     ec_ids, ec_superseded_dict, metacyc_rxn_ec_dict, official_ec_metacyc_rxn_dict,
                                     to_remove_metabolism_list)
@@ -249,6 +255,22 @@ def write_ensemble_outputs(ensemble_cls, all_query_ids, output_path, ef_map_path
                            metacyc_rxn_ec_path, official_ec_metacyc_rxn_path, to_remove_metabolism_path,
                            prot_gene_map_path=None, logging_level=DEFAULT_LOGGER_LEVEL,
                            logger_name=DEFAULT_LOGGER_NAME):
+    """Write all ensemble results
+    Args:
+        ensemble_cls: class of the ensemble that was used
+        all_query_ids: list of all query IDs
+        output_path: output path to the short output file
+        ef_map_path: path to efclasses.mapping
+        ec_superseded_path: path to EC-superseded.mapping
+        metacyc_rxn_ec_path: path to metacyc-RXN-EC.mapping
+        official_ec_metacyc_rxn_path: path to official-EC-metacyc-RXN.mapping
+        to_remove_metabolism_path: path to to-remove-non-small-molecule-metabolism.mapping
+        prot_gene_map_path: Path to protein to gene ID mapping
+        logging_level: The logging level set for write orxn results
+        logger_name: The name of the logger for write orxn results
+    Raises:
+    Returns:
+    """
     logging_helper("Writing outputs...", logging_level=logging_level, logger_name=logger_name)
     ensemble_name = re.sub(r'[^\w\-_\. ]', '_', ensemble_cls.prediction.name)
     ensemble_classifiers = ensemble_cls.list_of_classifiers
