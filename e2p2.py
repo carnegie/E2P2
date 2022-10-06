@@ -17,7 +17,7 @@ from src.bash.pipeline import *
 
 
 if __name__ == '__main__':
-    name = 'run_pipeline.py'
+    name = 'e2p2.py'
     description = '''
     Runs the Ensemble Enzyme Prediction Pipeline (E2P2) on a set of input protein sequences,
     outputting enzyme functional annotations in the forms of EC numbers or MetaCyc reaction
