@@ -458,6 +458,13 @@ def remove_splice_variants_from_fasta(fasta_path, output_dir, prot_gene_map, log
 
 
 def get_all_seq_ids_from_fasta(fasta_path, logger_name=DEFAULT_LOGGER_NAME):
+    """Get all sequence IDs from a fasta file
+    Args:
+        fasta_path: Path to fasta input
+        logger_name: The name of the logger
+    Raises: IndexError, KeyError
+    Returns:
+    """
     seq_ids = []
     with open(fasta_path, 'r') as fp:
         for header, seq in read_fasta(fp):

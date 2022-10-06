@@ -3,7 +3,7 @@ import multiprocessing
 import os.path
 
 from src.definitions import DEFAULT_LOGGER_NAME, DEFAULT_LOGGER_LEVEL
-from src.lib.config import config_option_helper
+from src.lib.config import get_values_from_config_option
 from src.lib.util import read_delim_itr, RunProcess, logging_helper
 
 _available_class_score_attr = ['weight', 'score']
@@ -352,7 +352,7 @@ class Classifier(object):
 
     def setup_class_w_processed_config(self, input_path, output_path, classifier_config_dict, classifier_name=None,
                                        logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
-        """Setup Classifier using a processed config dict read from a config file
+        """Placeholder function to set up a classifier using a processed config dict read from a config file
         Args:
             input_path: Input file path for the classifier
             output_path: Output file path for the classifier
@@ -409,8 +409,8 @@ class Classifier(object):
                                                       interpolation=configparser.ExtendedInterpolation())
         try:
             classifier_config.read_dict(config_dict)
-            return [config_option_helper(classifier_config, classifier_name, opt,
-                                         logging_level=logging_level, logger_name=logger_name) for opt in option_list]
+            return [get_values_from_config_option(classifier_config, classifier_name, opt,
+                                                  logging_level=logging_level, logger_name=logger_name) for opt in option_list]
         except AttributeError:
             return None
 
@@ -553,6 +553,16 @@ class RunClassifiers(object):
 
 def run_available_classifiers(list_of_classifier_names, list_of_classifiers, logging_level=DEFAULT_LOGGER_LEVEL,
                               logger_name=DEFAULT_LOGGER_NAME):
+    """Placeholder function to read classifier results from output file path.
+    Args:
+        list_of_classifier_names: List of the classifier names
+        list_of_classifiers: List of the classifier classes
+        logging_level: The logging level set for this command
+        logger_name: The name of the logger for this command
+    Raises:
+    Returns:
+        list of classifiers that were run, list of classifiers that were skipped
+    """
     run_cls = RunClassifiers()
     skipped_classifiers = []
     for idx, cls in enumerate(list_of_classifiers):

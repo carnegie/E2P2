@@ -10,6 +10,16 @@ class Ensemble(object):
     """
     def __init__(self, list_of_classifiers, time_stamp, name, logging_level=DEFAULT_LOGGER_LEVEL,
                  logger_name=DEFAULT_LOGGER_NAME):
+        """Placeholder function that retrieve and filter classifier results based on weights.
+        Args:
+            list_of_classifiers: A list of Classifier objects
+            time_stamp: time stamp
+            name: name of the ensemble
+            logging_level: The logging level set for this ensemble
+            logger_name: The name of the logger for this ensemble
+        Raises: KeyError
+        Returns:
+        """
         self.list_of_classifiers = list_of_classifiers
         for idx, classifier in enumerate(list_of_classifiers):
             if not isinstance(classifier, Classifier):
@@ -91,6 +101,12 @@ class Ensemble(object):
         setattr(self.prediction, "res", pred)
 
     def get_prediction(self, proteins=None):
+        """Function to retrieve the prediction from this ensemble class.
+        Args:
+            proteins: List of input proteins
+        Raises: KeyError
+        Returns:
+        """
         res = {}
         for query in getattr(self.prediction, "res"):
             res.setdefault(query, getattr(self.prediction, "res")[query])
