@@ -41,7 +41,7 @@ You can find it at [e2p2-singularity](https://github.com/lipme/e2p2-singularity)
 
 ## Usage Example
 
-python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta --blastp blastp --java java --priam_search /PATH/TO/PRIAM_search.jar --rpsd /PATH/TO/blastdb/rpsd-4.2.fasta --priam_profile /PATH/TO/profiles
+python3 e2p2.py [-h] e2p2 --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta --blastp blastp --java java --priam_search /PATH/TO/PRIAM_search.jar --rpsd /PATH/TO/blastdb/rpsd-4.2.fasta --priam_profile /PATH/TO/profiles
 
 ### Required Arguments
     --input INPUT_FILE, -i INPUT_FILE: Path to input protein sequences file
