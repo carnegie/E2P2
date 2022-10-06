@@ -8,6 +8,12 @@ from src.lib.util import PathType, check_fasta_header, logging_helper, remove_sp
 
 
 def add_io_arguments(argument_parser):
+    """Function to add IO related arguments
+    Args:
+        argument_parser: argparse
+    Raises:
+    Returns:
+    """
     argument_parser.add_argument("--config", "-c", dest="config_file", type=PathType('file'),
                                  help="Path to config file", default=os.path.join(DEFAULT_DIR, "config.ini"))
     argument_parser.add_argument("--input", "-i", dest="input_file", type=PathType('file'),
@@ -34,6 +40,12 @@ def add_io_arguments(argument_parser):
 
 
 def add_classifier_arugments(argument_parser):
+    """Function to add E2P2 classifiers related arguments
+    Args:
+        argument_parser: argparse
+    Raises:
+    Returns:
+    """
     # Argument for E2P2 classifiers
     argument_parser.add_argument("--blastp", "-b", dest="blastp_cmd",
                                  help=textwrap.dedent("Command of or path to BLAST+ \"blastp\"."))
@@ -76,6 +88,12 @@ def add_classifier_arugments(argument_parser):
 
 
 def add_ensemble_arguments(argument_parser):
+    """Function to add E2P2 ensemble related arguments
+    Args:
+        argument_parser: argparse
+    Raises:
+    Returns:
+    """
     # Arguments for E2P2 ensembles
     argument_parser.add_argument("--ensemble_cls", "-ec", dest="ensemble_cls", type=PathType('file'),
                                  help="Path to E2P2 ensemble class module.")
@@ -84,6 +102,12 @@ def add_ensemble_arguments(argument_parser):
 
 
 def add_mapping_arguments(argument_parser):
+    """Function to add Enzyme Function mapping related arguments
+    Args:
+        argument_parser: argparse
+    Raises:
+    Returns:
+    """
     # Arguments for maps
     argument_parser.add_argument("--ef_map", "-ef", dest="ef_map", type=PathType('file'),
                                  help="Path to efclasses.mapping file.")
@@ -99,6 +123,18 @@ def add_mapping_arguments(argument_parser):
 
 def io_helper(input_file, logger_name=DEFAULT_LOGGER_NAME, output_path=None, timestamp=str(time.time()),
               temp_folder=None, log_path=None, verbose="0"):
+    """Function for setting up IO related variables
+    Args:
+        input_file: input file path
+        logger_name: logger name
+        output_path: output file path
+        timestamp: time stamp
+        temp_folder: path to the temp file folder
+        log_path: path to the log file
+        verbose: verbose level of logging
+    Raises:
+    Returns:
+    """
     check_fasta_header(input_file, logger_name)
     # Setup output paths
     if output_path is None:
@@ -129,7 +165,17 @@ def io_helper(input_file, logger_name=DEFAULT_LOGGER_NAME, output_path=None, tim
 
 
 def protein_to_gene_helper(input_file, output_path, protein_gene_path, remove_splice_variants,
-                           logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
+                           logger_name=DEFAULT_LOGGER_NAME):
+    """Function for mapping protein IDs to gene IDs
+    Args:
+        input_file: input file path
+        output_path: output file path
+        protein_gene_path: protein to gene mapping file path
+        remove_splice_variants: Boolean value to remove splice variants from input
+        logger_name: logger name
+    Raises:
+    Returns:
+    """
     output_folder = os.path.dirname(output_path)
     if protein_gene_path is not None and remove_splice_variants is True:
         return remove_splice_variants_from_fasta(input_file, output_folder, protein_gene_path, logger_name=logger_name)
@@ -146,6 +192,18 @@ def protein_to_gene_helper(input_file, output_path, protein_gene_path, remove_sp
 
 
 def blast_overwrites(blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls, overwrites=None):
+    """Function for overwriting Blast related settings from config.ini
+    Args:
+        blastp_cmd: Command to run blastp
+        blast_db: path to blast database
+        num_threads: number of threads to run blastp
+        blast_evalue: e value threshold for blast output
+        blast_weight: weight file for blast classifier
+        blast_cls: the python module for blast
+        overwrites: the overwrite dictionary that would be used
+    Raises:
+    Returns:
+    """
     if overwrites is None:
         overwrites = {}
     if len([i for i in [blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls]
@@ -168,6 +226,19 @@ def blast_overwrites(blastp_cmd, blast_db, num_threads, blast_evalue, blast_weig
 
 def priam_overwrites(java_cmd, priam_search, priam_resume, blast_bin, priam_profiles, priam_weight, priam_cls,
                      overwrites=None):
+    """Function for overwriting PRIAM related settings from config.ini
+    Args:
+        java_cmd: Command to run java
+        priam_search: path to PRIAM_search.jar
+        priam_resume: flag to resume or not a previous PRIAM run
+        blast_bin: bin folder for blast
+        priam_profiles: path to PRIAM profiles folder
+        priam_weight: weight file for PRIAM classifier
+        priam_cls: the python module for PRIAM
+        overwrites: the overwrite dictionary that would be used
+    Raises:
+    Returns:
+    """
     if overwrites is None:
         overwrites = {}
     if len([i for i in [java_cmd, priam_search, priam_resume, blast_bin, priam_profiles, priam_weight, priam_cls]
@@ -194,6 +265,14 @@ def priam_overwrites(java_cmd, priam_search, priam_resume, blast_bin, priam_prof
 
 
 def ensemble_overwrites(ensemble_cls, threshold, overwrites=None):
+    """Function for overwriting ensemble related settings from config.ini
+    Args:
+        ensemble_cls: the python module for ensemble
+        threshold: threshold for the ensemble
+        overwrites: the overwrite dictionary that would be used
+    Raises:
+    Returns:
+    """
     if overwrites is None:
         overwrites = {}
     if len([i for i in [ensemble_cls, threshold] if i is not None]) > 0:
@@ -207,6 +286,17 @@ def ensemble_overwrites(ensemble_cls, threshold, overwrites=None):
 
 def mapping_overwrite(ef_map, ec_superseded, metacyc_rxn_ec, official_ec_metacyc_rxn, to_remove_metabolism,
                       overwrites=None):
+    """Function for overwriting mapping files related settings from config.ini
+    Args:
+        ef_map: path to efclasses.mapping
+        ec_superseded: path to EC-superseded.mapping
+        metacyc_rxn_ec: path to metacyc-RXN-EC.mapping
+        official_ec_metacyc_rxn: path to official-EC-metacyc-RXN.mapping
+        to_remove_metabolism: path to to-remove-non-small-molecule-metabolism.mapping
+        overwrites: the overwrite dictionary that would be used
+    Raises:
+    Returns:
+    """
     if overwrites is None:
         overwrites = {}
     if len([i for i in [ef_map, ec_superseded, metacyc_rxn_ec, official_ec_metacyc_rxn, to_remove_metabolism]

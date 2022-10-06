@@ -29,8 +29,7 @@ if __name__ == '__main__':
     - Intermediate results files can be found in a temporary directory of its own subdirectory labeled with a date and 
     time stamp.
     '''
-    # time_stamp = str(time.time())
-    time_stamp = "test"
+    time_stamp = str(time.time())
 
     parser = argparse.ArgumentParser(prog=name, description=description, formatter_class=argparse.RawTextHelpFormatter,
                                      epilog=textwrap.dedent(notes))
@@ -69,7 +68,7 @@ if __name__ == '__main__':
 
     fasta_path = \
         protein_to_gene_helper(args.input_file, output_path, args.protein_gene_path, args.remove_splice_variants,
-                               logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME)
+                               logger_name=DEFAULT_LOGGER_NAME)
     io_dict["IO"]["query"] = fasta_path
     all_query_ids = get_all_seq_ids_from_fasta(fasta_path)
     overwrites = \
