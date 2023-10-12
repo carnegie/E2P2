@@ -12,6 +12,7 @@ This pipeline is tested on Ubuntu, CentOS, macOS and should theoretically run on
 * [Java 1.5 or above](https://www.oracle.com/technetwork/java/javase/downloads/index.html)
 **Currently it has been known that PRIAM might not work with Java version 11, we recommend using version 8 instead.
 * [PRIAM_Search utility V2](http://priam.prabi.fr/REL_JAN18/index_jan18.html)
+**A copy is temperarily included due to the source website being down.
 
 ### Installing
 
