@@ -127,5 +127,38 @@ class BLAST(Classifier):
             raise e
 
 
+def blast_overwrites(blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls, overwrites=None):
+    """Function for overwriting Blast related settings from config.ini
+    Args:
+        blastp_cmd: Command to run blastp
+        blast_db: path to blast database
+        num_threads: number of threads to run blastp
+        blast_evalue: e value threshold for blast output
+        blast_weight: weight file for blast classifier
+        blast_cls: the python module for blast
+        overwrites: the overwrite dictionary that would be used
+    Raises:
+    Returns:
+    """
+    if overwrites is None:
+        overwrites = {}
+    if len([i for i in [blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls]
+            if i is not None]) > 0:
+        overwrites.setdefault("BLAST", {})
+        if blastp_cmd is not None:
+            overwrites["BLAST"].setdefault("blastp", blastp_cmd)
+        if blast_db is not None:
+            overwrites["BLAST"].setdefault("blastdb", blast_db)
+        if num_threads is not None:
+            overwrites["BLAST"].setdefault("num_threads", str(num_threads))
+        if blast_evalue is not None:
+            overwrites["BLAST"].setdefault("evalue_threshold", str(blast_evalue))
+        if blast_weight is not None:
+            overwrites["BLAST"].setdefault("weight", blast_weight)
+        if blast_cls is not None:
+            overwrites["BLAST"].setdefault("class", blast_cls)
+    return overwrites
+
+
 if __name__ == '__main__':
     pass

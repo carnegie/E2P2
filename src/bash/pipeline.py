@@ -191,77 +191,9 @@ def protein_to_gene_helper(input_file, output_path, protein_gene_path, remove_sp
         return input_file
 
 
-def blast_overwrites(blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls, overwrites=None):
-    """Function for overwriting Blast related settings from config.ini
-    Args:
-        blastp_cmd: Command to run blastp
-        blast_db: path to blast database
-        num_threads: number of threads to run blastp
-        blast_evalue: e value threshold for blast output
-        blast_weight: weight file for blast classifier
-        blast_cls: the python module for blast
-        overwrites: the overwrite dictionary that would be used
-    Raises:
-    Returns:
-    """
-    if overwrites is None:
-        overwrites = {}
-    if len([i for i in [blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls]
-            if i is not None]) > 0:
-        overwrites.setdefault("BLAST", {})
-        if blastp_cmd is not None:
-            overwrites["BLAST"].setdefault("blastp", blastp_cmd)
-        if blast_db is not None:
-            overwrites["BLAST"].setdefault("blastdb", blast_db)
-        if num_threads is not None:
-            overwrites["BLAST"].setdefault("num_threads", str(num_threads))
-        if blast_evalue is not None:
-            overwrites["BLAST"].setdefault("evalue_threshold", str(blast_evalue))
-        if blast_weight is not None:
-            overwrites["BLAST"].setdefault("weight", blast_weight)
-        if blast_cls is not None:
-            overwrites["BLAST"].setdefault("class", blast_cls)
-    return overwrites
 
 
-def priam_overwrites(java_cmd, priam_search, priam_resume, blast_bin, priam_profiles, priam_weight, priam_cls,
-                     overwrites=None):
-    """Function for overwriting PRIAM related settings from config.ini
-    Args:
-        java_cmd: Command to run java
-        priam_search: path to PRIAM_search.jar
-        priam_resume: flag to resume or not a previous PRIAM run
-        blast_bin: bin folder for blast
-        priam_profiles: path to PRIAM profiles folder
-        priam_weight: weight file for PRIAM classifier
-        priam_cls: the python module for PRIAM
-        overwrites: the overwrite dictionary that would be used
-    Raises:
-    Returns:
-    """
-    if overwrites is None:
-        overwrites = {}
-    if len([i for i in [java_cmd, priam_search, priam_resume, blast_bin, priam_profiles, priam_weight, priam_cls]
-            if i is not None]) > 0:
-        overwrites.setdefault("PRIAM", {})
-        if java_cmd is not None:
-            overwrites["PRIAM"].setdefault("java_path", java_cmd)
-        if priam_search is not None:
-            overwrites["PRIAM"].setdefault("priam_search_path", priam_search)
-        if priam_resume is not None:
-            if priam_resume is True:
-                overwrites["PRIAM"].setdefault("resume", 'fr')
-            else:
-                overwrites["PRIAM"].setdefault("resume", 'fn')
-        if blast_bin is not None:
-            overwrites["PRIAM"].setdefault("path_to_blast_plus_bin", blast_bin)
-        if priam_profiles is not None:
-            overwrites["PRIAM"].setdefault("path_to_priam_profiles", priam_profiles)
-        if priam_weight is not None:
-            overwrites["PRIAM"].setdefault("weight", priam_weight)
-        if priam_cls is not None:
-            overwrites["PRIAM"].setdefault("class", priam_cls)
-    return overwrites
+
 
 
 def ensemble_overwrites(ensemble_cls, threshold, overwrites=None):

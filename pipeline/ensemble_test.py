@@ -1,0 +1,574 @@
+"""
+Name:			ensemble
+Author:			Bo Xue, Chuan Wang, Lee Chae
+Description:	The ensemble module implements ensemble integration algorithms needed by
+                E2P2 (Ensemble Enzyme Prediction Pipeline) to provide a final classification
+                for a given query protein. Updated for Python 3.
+
+"""
+import logging
+import logging.config
+import multiprocessing
+import os
+import re
+import sys
+
+# pipeline modules
+import prog
+
+
+class RunClassifiers(object):
+    """Object for running all classifiers
+    """
+
+    def __init__(self, time_stamp):
+        self.time_stamp = time_stamp
+        self.queue = multiprocessing.Queue()
+        self.classifier_processes = prog.RunProcess()
+        self.output_dict = {}
+
+    def blast_classifer(self, blastp_path, path_to_blast_db_basename, path_to_input, path_to_output, num_threads,
+                        logging_level, logger_name):
+        """Add subprocess of blastp
+        Args:
+            blastp_path: path/command for blastp
+            path_to_blast_db_basename: Name for the blast database
+            path_to_input: Path to the fasta input
+            path_to_output: Path to the blastp output
+            evalue: cutoff evalue
+            logging_level: The logging level set for reading weight file
+            logger_name: The name of the logger for reading weight file
+        Raises: ValueError, KeyError
+        Returns:
+        """
+        logger = logging.getLogger(logger_name)
+        self.output_dict.setdefault("blast", path_to_output)
+        try:
+            num_threads = str(int(num_threads))
+        except ValueError:
+            logger.log(logging.DEBUG, "num_threads input error, using \"1\" instead.")
+            num_threads = "1"
+
+        blast_cmd = [blastp_path, '-db', path_to_blast_db_basename, '-num_threads', num_threads,
+                     '-query', path_to_input, '-out', path_to_output, '-outfmt', '6']
+        try:
+            logger.log(prog.logging_levels[logging_level], "Setup process for blastp: \"" + " ".join(blast_cmd) + "\"")
+            self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd,
+                                                             "blastp")
+        except KeyError:
+            logger.log(logging.DEBUG, "Setup process for blastp: \"" + " ".join(blast_cmd) + "\"")
+            self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, blast_cmd,
+                                                             "blastp")
+
+    def priam_classifer(self, java_path, priam_search_path, path_to_blast_bin, path_to_priam_profiles, path_to_input,
+                        path_to_output_folder, logging_level, logger_name, resume=True):
+        """Add subprocess of PRIAM_search.jar
+        Args:
+            java_path: path/command for blastp
+            priam_search_path: Name for the blast database
+            path_to_blast_bin: Path to blast+ bin folder
+            path_to_priam_profiles: Path to PRIAM profiles folder
+            path_to_input: Path to the fasta input
+            path_to_output_folder: Path to folder PRIAM_search.jar would generate output
+            logging_level: The logging level set for running PRIAM_search.jar
+            logger_name: The name of the logger for running PRIAM_search.jar
+            resume: Whether or not to resume a preexisting job.
+        Raises: KeyError
+        Returns:
+        """
+        logger = logging.getLogger(logger_name)
+        self.output_dict.setdefault("priam",
+                                    os.path.join(path_to_output_folder, "PRIAM_%s" % (self.time_stamp), "ANNOTATION",
+                                                 "sequenceECs.txt"))
+        if resume:
+            priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin,
+                         '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o',
+                         path_to_output_folder, '--fr']
+        else:
+            priam_cmd = [java_path, '-Xms3072m', '-Xmx3072m', '-jar', priam_search_path, '--bd', path_to_blast_bin,
+                         '--bp', '-n', self.time_stamp, '-i', path_to_input, '-p', path_to_priam_profiles, '--bh', '-o',
+                         path_to_output_folder, '--fn']
+        try:
+            logger.log(prog.logging_levels[logging_level],
+                       "Setup process for PRIAM_search.jar: \"" + " ".join(priam_cmd) + "\"")
+            self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd,
+                                                             "PRIAM_search.jar")
+        except KeyError:
+            logger.log(logging.DEBUG, "Setup process for PRIAM_search.jar: \"" + " ".join(priam_cmd) + "\"")
+            self.classifier_processes.add_process_to_workers(self.queue, logging_level, logger_name, priam_cmd,
+                                                             "PRIAM_search.jar")
+
+    def run_all_classifiers(self):
+        """Run all classifier subprocesses
+        Args:
+        Raises:
+        Returns:
+        """
+        self.classifier_processes.run_all_worker_processes(self.queue)
+
+
+class Predictions(object):
+    """Object for generating predictions for every classifier
+    """
+
+    def __init__(self, classifier_name):
+        self.classifier_name = classifier_name
+        self.seq_list = set()
+        self.predictions = {}
+        self.weights = {}
+
+    def read_weight_file(self, path_to_weight, logging_level, logger_name, efmap=None):
+        """Read in the weight files of a classifer
+        Args:
+            path_to_weight: path to the weight file of a classifier
+            logging_level: The logging level set for reading weight file
+            logger_name: The name of the logger for reading weight file
+        Raises: KeyError, IOError
+        Returns:
+        """
+        logger = logging.getLogger(logger_name)
+        try:
+            try:
+                logger.log(prog.logging_levels[logging_level], "Reading weight file: \"" + path_to_weight + "\"")
+            except KeyError:
+                logger.log(logging.DEBUG, "Reading weight file: \"" + path_to_weight + "\"")
+            with open(path_to_weight, 'r') as ptw:
+                for line in ptw:
+                    info = line.split('\t')
+                    try:
+                        ef_name = info[0].strip()
+                        if efmap:
+                            try:
+                                ef_name = efmap[ef_name]
+                            except KeyError:
+                                print("Mapped name not found", ef_name)
+                                ef_name = [ef_name]
+                        else:
+                            ef_name = [ef_name]
+                        ef_weight = info[1].strip()
+                        for ef in sorted(ef_name):
+                            self.weights.setdefault(ef, ef_weight)
+                    except KeyError:
+                        continue
+        except IOError:
+            logger.log(logging.ERROR, "Weight file not found: \"" + path_to_weight + "\"")
+            sys.exit(1)
+
+    @staticmethod
+    def read_priam_sequence_ec_itr(sequence_ecs_fp):
+        """Iterator to read PRIAM sequenceEC.txt file
+        Args:
+            sequence_ecs_fp: file pointer to sequenceEC.txt
+        Raises: ValueError, IndexError
+        Returns:
+        """
+        query_id, priam_results = '', []
+        for line in sequence_ecs_fp:
+            line = line.strip()
+            if line.startswith('>'):
+                if len(query_id) > 0:
+                    yield query_id, priam_results
+                query_id = re.sub(r'^>', '', re.split(r'\s+|\|', line)[0])
+                query_id, priam_results = query_id, []
+            else:
+                if not line.startswith('#') and len(line) > 0:
+                    try:
+                        info = line.split('\t')
+                        ef_class = info[0].strip()
+                        try:
+                            e_value = float(info[2])
+                            priam_results.append((ef_class, e_value))
+                        except ValueError:
+                            continue
+                    except IndexError:
+                        continue
+                else:
+                    continue
+        if len(query_id) > 0:
+            yield query_id, priam_results
+
+    def generate_blast_predictions(self, path_to_blast_weight, path_to_blast_out, evalue, logging_level, logger_name,
+                                   efmap=None):
+        """Read in the blast output and generate predictions
+        Args:
+            path_to_blast_weight:
+            path_to_blast_out: path to the output file of blast
+            evalue: threshold evalue
+            logging_level: The logging level set for blast prediction
+            logger_name: The name of the logger for blast prediction
+        Raises: KeyError, ValueError, IOError
+        Returns:
+        """
+        self.read_weight_file(path_to_blast_weight, logging_level, logger_name, efmap=efmap)
+        logger = logging.getLogger(logger_name)
+        bitscore_dict = {}
+        try:
+            try:
+                logger.log(prog.logging_levels[logging_level], "Reading blast output: \"" + path_to_blast_out + "\"")
+            except KeyError:
+                logger.log(logging.DEBUG, "Reading blast output: \"" + path_to_blast_out + "\"")
+            with open(path_to_blast_out, 'r') as ptbo:
+                for line in ptbo:
+                    info = [c.strip() for c in line.strip().split('\t')]
+                    try:
+                        e_value = float(info[-2])
+                    except ValueError:
+                        e_value = float("1" + info[-2])
+                    try:
+                        bitscore = float(info[-1])
+                    except ValueError:
+                        bitscore = float("1" + info[-1])
+                    query_id = re.split(r'\s+|\|', info[0])[0]
+                    self.seq_list.add(query_id)
+
+                    cur_bitscore = bitscore_dict.setdefault(query_id, bitscore)
+                    blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1]) if len(bh.strip()) > 0]
+                    # Current e-value threshold is set to 0.01
+                    if e_value > float(evalue) or len(blast_hits) <= 1 or bitscore < cur_bitscore:
+                        continue
+                    try:
+                        cur_e_vals = self.predictions[query_id]
+                        best_e_val = min(cur_e_vals.values())
+                        # Keep lowest e-value entries
+                        if e_value < best_e_val:
+                            for ef in blast_hits[1:]:
+                                try:
+                                    cur_e_vals[ef] = e_value
+                                except KeyError:
+                                    self.predictions[query_id].setdefault(ef, e_value)
+                            for ef in cur_e_vals:
+                                if ef not in blast_hits[1:]:
+                                    self.predictions[query_id].pop(ef, None)
+                    except KeyError:
+                        self.predictions.setdefault(query_id, {})
+                        for ef in blast_hits[1:]:
+                            self.predictions[query_id].setdefault(ef, e_value)
+        except IOError:
+            logger.log(logging.ERROR, "Blast output not found: \"" + path_to_blast_out + "\"")
+            sys.exit(1)
+
+        # Remove non EF Classes from prediction
+        # for q_id in self.predictions:
+        #     q_predictions = self.predictions[q_id]
+        #     for p in list(q_predictions.keys()):
+        #         if not p.startswith("EF"):
+        #             q_predictions.pop(p, None)
+
+        if efmap:
+            for seq in self.predictions:
+                pred = self.predictions[seq]
+                mapped_pred = {}
+                for cls in pred:
+                    score = pred[cls]
+                    try:
+                        mapped_clses = sorted(efmap[cls])
+                    except KeyError:
+                        print("Mapped not found", cls)
+                        mapped_clses = [cls]
+                    for c in mapped_clses:
+                        mapped_pred.setdefault(c, score)
+                self.predictions[seq] = mapped_pred
+
+    def generate_priam_predictions(self, path_to_priam_weight, path_to_sequence_ecs, logging_level, logger_name,
+                                   efmap=None):
+        """Read in the priam output and generate predictions
+        Args:
+            path_to_priam_weight:
+            path_to_sequence_ecs: path to the sequenceEC.txt
+            logging_level: The logging level set for priam prediction
+            logger_name: The name of the logger for priam prediction
+        Raises: KeyError, IOError
+        Returns:
+        """
+        self.read_weight_file(path_to_priam_weight, logging_level, logger_name, efmap=efmap)
+        logger = logging.getLogger(logger_name)
+        try:
+            try:
+                logger.log(prog.logging_levels[logging_level],
+                           "Reading sequenceECs.txt: \"" + path_to_sequence_ecs + "\"")
+            except KeyError:
+                logger.log(logging.DEBUG, "Reading sequenceECs.txt: \"" + path_to_sequence_ecs + "\"")
+            with open(path_to_sequence_ecs) as ptse:
+                for query_id, priam_results in self.read_priam_sequence_ec_itr(ptse):
+                    self.seq_list.add(query_id)
+                    if len(priam_results) > 0:
+                        try:
+                            for p_res in priam_results:
+                                try:
+                                    if p_res[1] < self.predictions[query_id][p_res[0]]:
+                                        self.predictions[query_id][p_res[0]] = p_res[1]
+                                except KeyError:
+                                    self.predictions[query_id].setdefault(p_res[0], p_res[1])
+                        except KeyError:
+                            self.predictions.setdefault(query_id, {})
+                            for p_res in priam_results:
+                                cur_e_val = self.predictions[query_id].setdefault(p_res[0], p_res[1])
+                                if p_res[1] < cur_e_val:
+                                    self.predictions[query_id][p_res[0]] = p_res[1]
+                    else:
+                        self.predictions.setdefault(query_id, {})
+
+        except IOError:
+            logger.log(logging.ERROR, "sequenceECs.txt not found: \"" + path_to_sequence_ecs + "\"")
+            sys.exit(1)
+        if efmap:
+            for seq in self.predictions:
+                pred = self.predictions[seq]
+                mapped_pred = {}
+                for cls in pred:
+                    score = pred[cls]
+                    try:
+                        mapped_clses = sorted(efmap[cls])
+                    except KeyError:
+                        print("Mapped not found", cls)
+                        mapped_clses = [cls]
+                    for c in mapped_clses:
+                        mapped_pred.setdefault(c, score)
+                self.predictions[seq] = mapped_pred
+
+    @staticmethod
+    def read_deepgoplus_itr(op, cuttoff=0.5):
+        for line in op:
+            line = line.rstrip()
+            info = line.split('\t')
+            try:
+                query = info[0]
+                res_score = [i.split('|') for i in info[1:]]
+                deepgoplus_results = []
+                for t in res_score:
+                    try:
+                        ef = t[0]
+                        score = float(t[1])
+                        if score >= cuttoff:
+                            deepgoplus_results.append((ef, score))
+                    except (IndexError, ValueError):
+                        continue
+                yield query, deepgoplus_results
+            except IndexError:
+                continue
+
+    def generate_deepgoplus_predictions(self, path_to_deepgoplus_weight, path_to_deepgoplus_results, cuttoff,
+                                        logging_level, logger_name):
+        """Read in the deepgoplus output and generate predictions
+        Args:
+            path_to_deepgoplus_weight:
+            path_to_deepgoplus_results:
+            logging_level: The logging level set for priam prediction
+            logger_name: The name of the logger for priam prediction
+        Raises: KeyError, IOError
+        Returns:
+        """
+        self.read_weight_file(path_to_deepgoplus_weight, logging_level, logger_name)
+        logger = logging.getLogger(logger_name)
+        try:
+            try:
+                logger.log(prog.logging_levels[logging_level],
+                           "Reading results.tsv: \"" + path_to_deepgoplus_results + "\"")
+            except KeyError:
+                logger.log(logging.DEBUG, "Reading results.tsv: \"" + path_to_deepgoplus_results + "\"")
+            with open(path_to_deepgoplus_results) as ptdr:
+                for query_id, deepgoplus_results in self.read_deepgoplus_itr(ptdr):
+                    self.seq_list.add(query_id)
+                    if len(deepgoplus_results) > 0:
+                        try:
+                            for p_res in deepgoplus_results:
+                                self.predictions[query_id][p_res[0]] = p_res[1]
+                        except KeyError:
+                            self.predictions.setdefault(query_id, {})
+                            for p_res in deepgoplus_results:
+                                self.predictions[query_id][p_res[0]] = p_res[1]
+                    else:
+                        self.predictions.setdefault(query_id, {})
+        except IOError:
+            logger.log(logging.ERROR, "DeepGoPlus output not found: \"" + path_to_deepgoplus_results + "\"")
+            sys.exit(1)
+
+    def generate_deepec_predictions(self, path_to_deepec_weight, path_to_deepec_results,
+                                    logging_level, logger_name):
+        """Read in the deepec output and generate predictions
+        Args:
+            path_to_deepec_weight:
+            path_to_deepec_results:
+            logging_level: The logging level set for priam prediction
+            logger_name: The name of the logger for priam prediction
+        Raises: KeyError, IOError
+        Returns:
+        """
+        self.read_weight_file(path_to_deepec_weight, logging_level, logger_name)
+        logger = logging.getLogger(logger_name)
+        try:
+            try:
+                logger.log(prog.logging_levels[logging_level],
+                           "Reading results.tsv: \"" + path_to_deepec_results + "\"")
+            except KeyError:
+                logger.log(logging.DEBUG, "Reading results.tsv: \"" + path_to_deepec_results + "\"")
+            with open(path_to_deepec_results) as ptdr:
+                for idx, line in enumerate(ptdr):
+                    if idx == 0:
+                        continue
+                    info = [i.strip() for i in line.split('\t')]
+                    query_id = info[0]
+                    pred = [p.strip() for p in info[2].split('|') if p.strip() != '']
+                    if len(pred) > 0:
+                        try:
+                            for p_res in pred:
+                                self.predictions[query_id][p_res] = 1
+                        except KeyError:
+                            self.predictions.setdefault(query_id, {})
+                            for p_res in pred:
+                                self.predictions[query_id][p_res] = 1
+                    else:
+                        self.predictions.setdefault(query_id, {})
+        except IOError:
+            logger.log(logging.ERROR, "DeepEC output not found: \"" + path_to_deepec_results + "\"")
+            sys.exit(1)
+
+    def read_e2p2_output(self, path_to_weight, path_to_e2p2_results, logging_level, logger_name, efmap=None, metacyc_to_ec=None):
+        self.read_weight_file(path_to_weight, logging_level, logger_name)
+        logger = logging.getLogger(logger_name)
+        try:
+            try:
+                logger.log(prog.logging_levels[logging_level],
+                           "Reading E2P2 output: \"" + path_to_e2p2_results + "\"")
+            except KeyError:
+                logger.log(logging.DEBUG, " E2P2 output: \"" + path_to_e2p2_results + "\"")
+            with open(path_to_e2p2_results) as ptdr:
+                for idx, line in enumerate(ptdr):
+                    if idx == 0 or line.lstrip().startswith('#'):
+                        continue
+                    info = [i.strip() for i in line.split('\t')]
+                    query_id = info[0]
+                    pred = [p.strip() for p in info[1].split('|') if p.strip() != '']
+                    if metacyc_to_ec is not None:
+                        new_pred = []
+                        for p in pred:
+                            try:
+                                new_pred.append(metacyc_to_ec[p])
+                            except KeyError:
+                                new_pred.append(p)
+                        pred = new_pred
+                    if len(pred) > 0:
+                        try:
+                            for p_res in pred:
+                                self.predictions[query_id][p_res] = 1
+                        except KeyError:
+                            self.predictions.setdefault(query_id, {})
+                            for p_res in pred:
+                                self.predictions[query_id][p_res] = 1
+                    else:
+                        self.predictions.setdefault(query_id, {})
+        except IOError:
+            logger.log(logging.ERROR, "E2P2 output not found: \"" + path_to_e2p2_results + "\"")
+            sys.exit(1)
+        if efmap:
+            for seq in self.predictions:
+                pred = self.predictions[seq]
+                mapped_pred = {}
+                for cls in pred:
+                    score = pred[cls]
+                    try:
+                        mapped_clses = sorted(efmap[cls])
+                    except KeyError:
+                        print("Mapped not found", cls)
+                        mapped_clses = [cls]
+                    for c in mapped_clses:
+                        mapped_pred.setdefault(c, score)
+                self.predictions[seq] = mapped_pred
+
+
+class Ensemble(object):
+    """Object for ensemble for final prediction
+    """
+
+    def __init__(self):
+        self.classifiers = []
+        self.ensemble_predictions = Predictions("Ensemble")
+        self.final_predictions = {}
+        self.seq_list = set()
+
+    def add_classifier(self, classifier):
+        """Add a Classifier object to the ensemble
+        Args:
+            classifier: a classifier object
+        Raises:
+        Returns:
+        """
+        self.classifiers.append(classifier)
+        for seq_id in sorted(classifier.seq_list):
+            self.seq_list.add(seq_id)
+
+    def max_weight_voting(self, logging_level, logger_name, metacyc_to_ec=None):
+        """Perform maximum weight voting on all classifiers added to Ensemble object
+        Args:
+            logging_level: The logging level set for maximum weight voting
+            logger_name: The name of the logger for maximum weight voting
+        Raises: KeyError
+        Returns:
+        """
+        logger = logging.getLogger(logger_name)
+        try:
+            logger.log(prog.logging_levels[logging_level], "Performing Max Weight Voting...")
+        except KeyError:
+            logger.log(logging.DEBUG, "Performing Max Weight Voting...")
+        for classifier in self.classifiers:
+            classifier_name = classifier.classifier_name
+            prediction = classifier.predictions
+            weights = classifier.weights
+            for seq_id in prediction:
+                if len(prediction[seq_id]) <= 0:
+                    if self.ensemble_predictions.predictions.get(seq_id) is None:
+                        self.ensemble_predictions.predictions.setdefault(seq_id, {})
+                else:
+                    for ef_class in prediction[seq_id]:
+                        ef_weight = float(weights.get(ef_class, 0.00))
+                        if metacyc_to_ec is not None:
+                            try:
+                                ef_class_list = [ec for ec in sorted(metacyc_to_ec[ef_class])
+                                                 if re.search('\d+\.\d+\.\d+\.\d+', ec)]
+                            except KeyError:
+                                ef_class_list = [ef_class]
+                        else:
+                            ef_class_list = [ef_class]
+                        for ef in sorted(ef_class_list):
+                            if self.ensemble_predictions.predictions.get(seq_id) is None:
+                                self.ensemble_predictions.predictions.setdefault(seq_id, {ef: ef_weight})
+                            else:
+                                weighted_ef_classes = self.ensemble_predictions.predictions[seq_id]
+                                if weighted_ef_classes.get(ef) is None:
+                                    self.ensemble_predictions.predictions[seq_id].setdefault(ef, ef_weight)
+                                elif ef_weight > weighted_ef_classes[ef]:
+                                    self.ensemble_predictions.predictions[seq_id][ef] = ef_weight
+
+    def absolute_threshold(self, threshold, logging_level, logger_name):
+        """Perform absolute threshold on the ensemble prediction
+        Args:
+            threshold: the threshold to calculate absolute threshold for the prediction
+            logging_level: The logging level set for maximum weight voting
+            logger_name: The name of the logger for maximum weight voting
+        Raises: KeyError
+        Returns:
+        """
+        logger = logging.getLogger(logger_name)
+        try:
+            logger.log(prog.logging_levels[logging_level],
+                       "Performing Absolute Threshold (" + str(threshold) + ") to votes...")
+        except KeyError:
+            logger.log(logging.DEBUG, "Performing Absolute Threshold (" + str(threshold) + ") to votes...")
+        for seq_id in self.ensemble_predictions.predictions:
+            weighted_ef_classes = self.ensemble_predictions.predictions[seq_id]
+            if len(weighted_ef_classes) > 0:
+                max_weight = max(
+                    [float(v) for v in weighted_ef_classes.values() if str(v).replace('.', '', 1).isdigit()])
+                t = float(max_weight - threshold)
+                if t < 0.0:
+                    t = float(0.0)
+                for ef_class in weighted_ef_classes:
+                    if float(weighted_ef_classes[ef_class]) >= t:
+                        try:
+                            self.final_predictions[seq_id].append(ef_class)
+                        except KeyError:
+                            self.final_predictions.setdefault(seq_id, [ef_class])
+            else:
+                self.final_predictions.setdefault(seq_id, [])
+        for seq_id in [s for s in self.seq_list if s not in self.ensemble_predictions.predictions.keys()]:
+            self.final_predictions.setdefault(seq_id, [])

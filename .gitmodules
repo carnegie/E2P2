@@ -1,0 +1,3 @@
+[submodule "deepec"]
+	path = deepec
+	url = https://bitbucket.org/kaistsystemsbiology/deepec.git

@@ -4,16 +4,19 @@ import os
 import re
 import sys
 
+from src.bash.pipeline import *
 from src.lib.classifier import run_available_classifiers
 from src.lib.config import read_config_ini
 from src.lib.ensemble import run_all_ensembles
 from src.lib.util import LoggerConfig, logging_helper, get_all_seq_ids_from_fasta
 from src.lib.write import PfFiles, write_ensemble_outputs
 
+from src.e2p2.classifiers.blast import blast_overwrites
+from src.e2p2.classifiers.priam import priam_overwrites
+
+
 project_path = os.path.dirname(__file__)
 sys.path.insert(0, project_path)
-
-from src.bash.pipeline import *
 
 
 if __name__ == '__main__':

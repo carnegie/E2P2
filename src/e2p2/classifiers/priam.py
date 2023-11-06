@@ -77,3 +77,43 @@ class PRIAM(Classifier):
                             continue
         except (FileNotFoundError, TypeError) as e:
             raise e
+
+
+def priam_overwrites(java_cmd, priam_search, priam_resume, blast_bin, priam_profiles, priam_weight, priam_cls,
+                     overwrites=None):
+    """Function for overwriting PRIAM related settings from config.ini
+    Args:
+        java_cmd: Command to run java
+        priam_search: path to PRIAM_search.jar
+        priam_resume: flag to resume or not a previous PRIAM run
+        blast_bin: bin folder for blast
+        priam_profiles: path to PRIAM profiles folder
+        priam_weight: weight file for PRIAM classifier
+        priam_cls: the python module for PRIAM
+        overwrites: the overwrite dictionary that would be used
+    Raises:
+    Returns:
+    """
+    if overwrites is None:
+        overwrites = {}
+    if len([i for i in [java_cmd, priam_search, priam_resume, blast_bin, priam_profiles, priam_weight, priam_cls]
+            if i is not None]) > 0:
+        overwrites.setdefault("PRIAM", {})
+        if java_cmd is not None:
+            overwrites["PRIAM"].setdefault("java_path", java_cmd)
+        if priam_search is not None:
+            overwrites["PRIAM"].setdefault("priam_search_path", priam_search)
+        if priam_resume is not None:
+            if priam_resume is True:
+                overwrites["PRIAM"].setdefault("resume", 'fr')
+            else:
+                overwrites["PRIAM"].setdefault("resume", 'fn')
+        if blast_bin is not None:
+            overwrites["PRIAM"].setdefault("path_to_blast_plus_bin", blast_bin)
+        if priam_profiles is not None:
+            overwrites["PRIAM"].setdefault("path_to_priam_profiles", priam_profiles)
+        if priam_weight is not None:
+            overwrites["PRIAM"].setdefault("weight", priam_weight)
+        if priam_cls is not None:
+            overwrites["PRIAM"].setdefault("class", priam_cls)
+    return overwrites
