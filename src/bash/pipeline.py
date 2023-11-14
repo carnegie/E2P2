@@ -191,11 +191,6 @@ def protein_to_gene_helper(input_file, output_path, protein_gene_path, remove_sp
         return input_file
 
 
-
-
-
-
-
 def ensemble_overwrites(ensemble_cls, threshold, overwrites=None):
     """Function for overwriting ensemble related settings from config.ini
     Args:
@@ -245,5 +240,3 @@ def mapping_overwrite(ef_map, ec_superseded, metacyc_rxn_ec, official_ec_metacyc
         if to_remove_metabolism is not None:
             overwrites["Mapping"].setdefault("to_remove_non_small_molecule_metabolism", to_remove_metabolism)
     return overwrites
-
-
