@@ -1,13 +1,17 @@
 import configparser
 import os
+from argparse import ArgumentParser
 
-from src.definitions import ROOT_DIR, DEFAULT_LOGGER_NAME, CLASSIFIERS_CLS_DIR, WEIGHTS_DIR, ENSEMBLES_CLS_DIR, MAPS_DIR
-from src.lib.util import logging_helper, load_module_function_from_path
+from src.definitions import ROOT_DIR, DEFAULT_LOGGER_NAME, CONFIG_PATH, CLASSIFIERS_CLS_DIR, WEIGHTS_DIR, ENSEMBLES_CLS_DIR, MAPS_DIR
+from src.lib.process import logging_helper, load_module_function_from_path
+
+
+_DEFAULT_SECTIONS = ["Mapping", "Ensembles", "Classifiers"]
 
 
 def get_options_from_config_section(config, section_name, name_only=True, selected_options=None,
                                     logging_level="WARNING", logger_name=DEFAULT_LOGGER_NAME):
-    """Helper function to retrieve options from configparser sections
+    """Helper function to retrieve options from a configparser section
     Args:
         config: configparser
         section_name: Name of the sections to retrieve
@@ -21,11 +25,10 @@ def get_options_from_config_section(config, section_name, name_only=True, select
     """
     if selected_options is None:
         selected_options = set()
-    elif type(selected_options) is not list and type(selected_options) is not set and \
-            type(selected_options) is not tuple:
-        selected_options = set()
-    else:
+    elif type(selected_options) in [list, tuple, range, 'generator', set, dict]:
         selected_options = set(selected_options)
+    else:
+        return None
     try:
         try:
             section_options = config.items(section_name)
@@ -92,18 +95,21 @@ def config_section_to_multi_sections_helper(config, section_name, selected_optio
         sections_names: names of the referenced multiple sections
         sections_dict: a dictionary that contains options and their values
     """
-    sections = get_options_from_config_section(config, section_name, logging_level=logging_level, logger_name=logger_name)
-    if sections is not None:
-        sections_names = [get_values_from_config_option(config, section_name, section, logging_level=logging_level,
-                                                        logger_name=logger_name) for section in sections]
+    potential_sections = get_options_from_config_section(config, section_name, logging_level=logging_level,
+                                                         logger_name=logger_name)
+    if potential_sections is not None:
+        available_sections_names = [get_values_from_config_option(config, section_name, potential_section_name,
+                                                                  logging_level=logging_level, logger_name=logger_name)
+                                    for potential_section_name in potential_sections]
     else:
-        sections_names = None
-    if sections_names is not None:
-        sections_dict = [get_options_from_config_section(config, section, selected_options=selected_options, name_only=False)
-                         for section in sections_names]
+        available_sections_names = None
+    if available_sections_names is not None:
+        available_sections_dicts = [get_options_from_config_section(config, section, selected_options=selected_options,
+                                                                    name_only=False)
+                                    for section in available_sections_names]
     else:
-        sections_dict = None
-    return sections_names, sections_dict
+        available_sections_dicts = None
+    return available_sections_names, available_sections_dicts
 
 
 def default_path_helper(input_path, default_folder, root_dir=ROOT_DIR):
@@ -198,7 +204,7 @@ def read_config_ini(timestamp, config_ini, io_dict, overwrites=None, logging_lev
                         if weight_path is not None:
                             weight_path = default_path_helper(weight_path, WEIGHTS_DIR)
                     cls_class = cls_fn(timestamp, weight_path, cls)
-                    cls_class.setup_class_w_processed_config(query_path, temp_path, cls_config_dict, cls)
+                    cls_class.setup_classifier(query_path, temp_path, cls_config_dict, cls)
                     list_of_classifiers.append(cls_class)
                 else:
                     list_of_classifiers.append(None)
@@ -224,3 +230,68 @@ def read_config_ini(timestamp, config_ini, io_dict, overwrites=None, logging_lev
             else:
                 list_of_ensembles.append(None)
     return classifier_sections, list_of_classifiers, ensemble_sections, list_of_ensembles, mapping_files
+
+
+def read_config(config_ini, io_dict=None, overwrites=None, logging_level="DEBUG", logger_name=DEFAULT_LOGGER_NAME):
+    logging_helper("Processing config.ini", logging_level, logger_name)
+    pipeline_config = configparser.ConfigParser(allow_no_value=True, interpolation=configparser.ExtendedInterpolation())
+    if io_dict is not None and type(io_dict) is dict:
+        pipeline_config.read_dict(io_dict)
+    pipeline_config.read(config_ini)
+    if overwrites is not None and type(overwrites) is dict:
+        pipeline_config.read_dict(overwrites)
+
+    mapping_dict = {}
+    mappings_options = get_options_from_config_section(pipeline_config, "Mapping")
+    if mappings_options is None:
+        logging_helper("No [Mapping] section in config.ini", "ERROR", logger_name)
+        raise SystemError
+    for map_option in mappings_options:
+        map_value = get_values_from_config_option(pipeline_config, "Mapping", map_option)
+        mapping_dict.setdefault(map_option, map_value)
+
+    classifier_dict = {}
+    classifier_sections = config_section_to_multi_sections_helper(pipeline_config, "Classifiers")
+    if classifier_sections is None:
+        logging_helper("No [Classifiers] section in config.ini", "ERROR", logger_name)
+        raise SystemError
+    num_of_classifiers = len(classifier_sections[0])
+    for idx in range(num_of_classifiers):
+        classifier_dict.setdefault(classifier_sections[0][idx], classifier_sections[1][idx])
+
+    ensemble_dict = {}
+    ensemble_sections = config_section_to_multi_sections_helper(pipeline_config, "Ensembles")
+    if ensemble_sections is None:
+        logging_helper("No [Ensembles] section in config.ini", "ERROR", logger_name)
+        raise SystemError
+    num_of_ensembles = len(ensemble_sections[0])
+    for idx in range(num_of_ensembles):
+        ensemble_dict.setdefault(ensemble_sections[0][idx], ensemble_sections[1][idx])
+
+    return mapping_dict, classifier_dict, ensemble_dict
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    config_path = CONFIG_PATH
+
+    ensemble_dict = read_config(config_path, None)[2]
+    classifier_dict = read_config(config_path, None)[1]
+    print(classifier_dict)
+    for cls in classifier_dict:
+        cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
+        cls_fn = load_module_function_from_path(cls_path, cls)
+        cls_fn.add_arguments(parser)
+    # parser.print_help()
+    overwrites = {}
+    args = parser.parse_args()
+    for cls in classifier_dict:
+        cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
+        cls_fn = load_module_function_from_path(cls_path, cls)
+        cls_fn.config_overwrites(args, overwrites)
+
+    print("overwrite", overwrites)
+    io = {"IO": {"query": "INPUT", "blast": "BLAST", "priam": "PRIAM", "timestamp": "000"}}
+    classifier_dict = read_config(config_path, io, overwrites)[1]
+    print(classifier_dict)
+

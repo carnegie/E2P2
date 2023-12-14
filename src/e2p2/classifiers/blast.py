@@ -1,44 +1,41 @@
 import os
 import random
 import re
+import textwrap
 
 from src.definitions import DEFAULT_LOGGER_LEVEL, DEFAULT_LOGGER_NAME
-from src.lib.classifier import FunctionClass, Classifier
-from src.lib.util import read_delim_itr, logging_helper
+from src.lib.classifier import Classifier
+from src.lib.function_class import FunctionClass
+from src.lib.process import logging_helper, PathType
+from src.lib.read import read_delim_itr
 
 
 class BLAST(Classifier):
-    def __init__(self, time_stamp, path_to_weight, name="NCBI BLAST+ blastp", logging_level=DEFAULT_LOGGER_LEVEL,
-                 logger_name=DEFAULT_LOGGER_NAME):
+    def __init__(self, time_stamp, path_to_weight, name="BLAST", e_value=float("1e-2"),
+                 bit_score=float("0"), logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         Classifier.__init__(self, time_stamp, path_to_weight, name, logging_level, logger_name)
-        self.evalue_threshold = float("1e-2")
-        self.bitscore_threshold = float("0")
+        self.e_value_threshold = e_value
+        self.bit_score_threshold = bit_score
 
-    def setup_class_w_processed_config(self, input_path, output_path, classifier_config_dict, classifier_name="BLAST",
-                                       logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
+    def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name="BLAST",
+                         logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         logging_helper("Setting up BLAST", logging_level=logging_level, logger_name=logger_name)
         self.input = input_path
-        # input_file_name, input_file_ext = os.path.splitext(os.path.basename(input_path))
-        if os.path.isfile(output_path):
-            self.output = output_path
-        elif os.path.isdir(output_path):
-            self.output = os.path.join(output_path, '.'.join(["blast", str(self._time_stamp), "out"]))
-        [evalue_threshold, bitscore_threshold, command_string] = \
-            self.retrieve_config_dict_options(self._time_stamp, self.input, self.output, classifier_config_dict,
-                                              classifier_name, ["evalue_threshold", "bitscore_threshold", "command"],
-                                              logging_level=logging_level, logger_name=logger_name)
+        self.output = self.generate_output_paths(input_path, output_path, classifier_name, self._time_stamp)
+        [e_value_threshold, bit_score_threshold, command_string] = \
+            self.classifier_config_dict_helper(self._time_stamp, self.input, self.output, classifier_config_dict,
+                                               classifier_name, ["e_value", "bit_score", "command"],
+                                               logging_level=logging_level, logger_name=logger_name)
         try:
-            self.evalue_threshold = float(evalue_threshold)
+            self.e_value_threshold = float(e_value_threshold)
         except (TypeError, ValueError) as e:
             logging_helper("BLAST E-value type error, using default 1e-2.", logging_level="WARNING",
                            logger_name=logger_name)
-            self.evalue_threshold = float("1e-2")
         try:
-            self.bitscore_threshold = float(bitscore_threshold)
+            self.bit_score_threshold = float(bit_score_threshold)
         except (TypeError, ValueError) as e:
             logging_helper("BLAST Bit score type error, using default 0.", logging_level="WARNING",
                            logger_name=logger_name)
-            self.bitscore_threshold = float("0")
         try:
             self.command = command_string.split()
         except AttributeError:
@@ -46,13 +43,25 @@ class BLAST(Classifier):
                            logger_name=logger_name)
             self.command = None
 
+    @staticmethod
+    def generate_output_paths(input_path, output_path, classifier_name, time_stamp):
+        input_file_name, input_file_ext = os.path.splitext(os.path.basename(input_path))
+        if os.path.isfile(output_path):
+            output = output_path
+        elif os.path.isdir(output_path):
+            output = os.path.join(output_path, '.'.join(["blast", input_file_name, str(time_stamp), "out"]))
+        else:
+            input_folder = os.path.dirname(input_path)
+            output = os.path.join(input_folder, '.'.join(["blast", input_file_name, str(time_stamp), "out"]))
+        return output
+
     def read_classifier_result(self, output_path=None, logging_level=DEFAULT_LOGGER_LEVEL,
                                logger_name=DEFAULT_LOGGER_NAME):
         if output_path is None:
             output_path = self.output
         bit_score_dict = {}
         for query_id, _, _, hit_cls, e_value, bit_score in \
-                self.blast_tab_itr(output_path, self.evalue_threshold, self.bitscore_threshold, logger_name):
+                self.blast_tab_itr(output_path, self.e_value_threshold, self.bit_score_threshold, logger_name):
             try:
                 e_value_function_classes = list(self.res[query_id])
                 bit_score_function_classes = list(bit_score_dict[query_id])
@@ -61,7 +70,7 @@ class BLAST(Classifier):
                 bit_score_function_classes = []
             for ef_cls in hit_cls:
                 try:
-                    ef_weight = self.weight[ef_cls]
+                    ef_weight = self.weight_map[ef_cls]
                 except KeyError:
                     ef_weight = 0
                 e_value_function_classes.append(FunctionClass(ef_cls, e_value, ef_weight))
@@ -70,18 +79,23 @@ class BLAST(Classifier):
                 self.res.setdefault(query_id, [])
                 bit_score_dict.setdefault(query_id, [])
                 continue
-            min_e_value_function_classes = FunctionClass.min_classes(e_value_function_classes)
-            min_e_value_function_classes_names = \
-                list(set(FunctionClass.get_function_classes_attr_vals(min_e_value_function_classes, "name")))
+            min_e_value = min(e_value_function_classes).score
+            min_e_value_function_classes = (
+                FunctionClass.get_function_classes_by_vals(e_value_function_classes, min_e_value, 'score'))
+            min_e_value_function_classes_names = list(set([fc.name for fc in min_e_value_function_classes]))
+
             bit_score_function_classes_with_min_e_value = \
                 FunctionClass.get_function_classes_by_vals(bit_score_function_classes,
                                                            min_e_value_function_classes_names, "name")
-            best_bit_score_function_classes = FunctionClass.max_classes(bit_score_function_classes_with_min_e_value)
-            best_bit_score_function_classes_names = \
-                FunctionClass.get_function_classes_attr_vals(best_bit_score_function_classes, "name")
-            best_e_value_function_classes = \
+            max_bit_score = max(bit_score_function_classes_with_min_e_value).score
+            best_bit_score_function_classes = (
+                FunctionClass.get_function_classes_by_vals(bit_score_function_classes_with_min_e_value,
+                                                           max_bit_score, 'score'))
+
+            best_function_classes_names = list(set([fc.name for fc in best_bit_score_function_classes]))
+            best_e_value_function_classes = (
                 FunctionClass.get_function_classes_by_vals(min_e_value_function_classes,
-                                                           best_bit_score_function_classes_names, "name")
+                                                           best_function_classes_names, "name"))
             try:
                 self.res[query_id] = best_e_value_function_classes
                 bit_score_dict[query_id] = best_bit_score_function_classes
@@ -91,74 +105,77 @@ class BLAST(Classifier):
         for query in self.res:
             dup_removed = []
             res_of_query = self.res[query]
-            function_cls_names = list(set(FunctionClass.get_function_classes_attr_vals(res_of_query, "name")))
-            for func_cls_name in function_cls_names:
-                all_fun_cls_of_name = FunctionClass.get_function_classes_by_vals(res_of_query, func_cls_name, "name")
-                dup_removed.append(random.choice(all_fun_cls_of_name))
+            function_cls_names = list(set([fc.name for fc in res_of_query]))
+            for cls_name in function_cls_names:
+                func_classes_w_name = FunctionClass.get_function_classes_by_vals(res_of_query, cls_name, "name")
+                dup_removed.append(random.choice(func_classes_w_name))
             self.res[query] = dup_removed
 
     @staticmethod
-    def blast_tab_itr(path_to_blast_out, evalue_threshold=float("1e-2"), bitscore_threshold=float("0"),
+    def blast_tab_itr(path_to_blast_out, e_value_threshold=float("1e-2"), bit_score_threshold=float("0"),
                       logger_name=DEFAULT_LOGGER_NAME):
         logging_helper("Reading blast output: \"" + path_to_blast_out + "\"", logging_level="INFO",
                        logger_name=logger_name)
         try:
             with open(path_to_blast_out, 'r') as ptbo:
-                for info in read_delim_itr(ptbo, val_indices=[0, 1, 10, 11]):
-                    if info:
+                for blast_res in read_delim_itr(ptbo, val_indices=[0, 1, 10, 11]):
+                    if blast_res:
+                        info = blast_res[1]
                         try:
-                            e_value = float(info[1][2])
+                            e_value = float(info[2])
                         except ValueError:
-                            e_value = float("1" + info[1][2])
+                            e_value = float("1" + info[2])
                         try:
-                            bit_score = float(info[1][3])
+                            bit_score = float(info[3])
                         except ValueError:
-                            bit_score = float("1" + info[1][3])
-                        blast_query = [bq.strip() for bq in re.split(r'\s+|\|', info[1][0]) if len(bq.strip()) > 0]
-                        blast_hits = [bh.strip() for bh in re.split(r'\s+|\|', info[1][1]) if len(bh.strip()) > 0]
+                            bit_score = float("-1")
+                        blast_query = [bq.strip() for bq in re.split(r'[\s|]+', info[0]) if len(bq.strip()) > 0]
+                        blast_hits = [bh.strip() for bh in re.split(r'[\s|]+', info[1]) if len(bh.strip()) > 0]
                         try:
                             query_id, query_cls = blast_query[0], blast_query[1:]
                             hit_id, hit_cls = blast_hits[0], blast_hits[1:]
-                            if e_value <= float(evalue_threshold) and bit_score >= bitscore_threshold:
+                            if e_value <= float(e_value_threshold) and bit_score >= bit_score_threshold:
                                 yield query_id, query_cls, hit_id, hit_cls, e_value, bit_score
                         except IndexError:
                             continue
         except (FileNotFoundError, TypeError) as e:
             raise e
 
+    @staticmethod
+    def add_arguments(argument_parser):
+        argument_parser.add_argument("--blastp", "-b", dest="blastp",
+                                     help=textwrap.dedent("Command of or path to BLAST+ \"blastp\"."))
+        argument_parser.add_argument("--num_threads", "-n", dest="num_threads", type=int,
+                                     help="Number of threads to run \"blastp\".")
+        argument_parser.add_argument("--blast_db", "-bd", dest="blast_db", type=PathType('blast_db'),
+                                     help=textwrap.dedent(
+                                         "Path to rpsd blast database name.\nFor example, \"/PATH/TO/FOLDER/rpsd.fa\", "
+                                         "where you can find the following files in /PATH/TO/FOLDER:rpsd.fa.phr; "
+                                         "rpsd.fa.pin; rpsd.fa.psq"))
+        argument_parser.add_argument("--e_value", "-be", dest="e_value", type=float,
+                                     help=textwrap.dedent("Blastp e-value cutoff"))
+        argument_parser.add_argument("--blast_weight", "-bw", dest="blast_weight", type=PathType('file'),
+                                     help=textwrap.dedent("Path to weight file for the blast classifier"))
 
-def blast_overwrites(blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls, overwrites=None):
-    """Function for overwriting Blast related settings from config.ini
-    Args:
-        blastp_cmd: Command to run blastp
-        blast_db: path to blast database
-        num_threads: number of threads to run blastp
-        blast_evalue: e value threshold for blast output
-        blast_weight: weight file for blast classifier
-        blast_cls: the python module for blast
-        overwrites: the overwrite dictionary that would be used
-    Raises:
-    Returns:
-    """
-    if overwrites is None:
-        overwrites = {}
-    if len([i for i in [blastp_cmd, blast_db, num_threads, blast_evalue, blast_weight, blast_cls]
-            if i is not None]) > 0:
-        overwrites.setdefault("BLAST", {})
-        if blastp_cmd is not None:
-            overwrites["BLAST"].setdefault("blastp", blastp_cmd)
-        if blast_db is not None:
-            overwrites["BLAST"].setdefault("blastdb", blast_db)
-        if num_threads is not None:
-            overwrites["BLAST"].setdefault("num_threads", str(num_threads))
-        if blast_evalue is not None:
-            overwrites["BLAST"].setdefault("evalue_threshold", str(blast_evalue))
-        if blast_weight is not None:
-            overwrites["BLAST"].setdefault("weight", blast_weight)
-        if blast_cls is not None:
-            overwrites["BLAST"].setdefault("class", blast_cls)
-    return overwrites
+    @staticmethod
+    def config_overwrites(args, overwrites=None):
+        blast_dest = ["blastp", "num_threads", "blast_db", "e_value", "blast_weight"]
+        if overwrites is None:
+            overwrites = {}
+        blast_overwrites = {}
+        args_dict = vars(args)
+        for dest in blast_dest:
+            try:
+                val = args_dict[dest]
+                if val is not None:
+                    key = dest
+                    if dest in ["blast_weight"]:
+                        key = key.replace("blast_", "")
+                    blast_overwrites.setdefault(key, val)
+            except KeyError:
+                continue
+        if len(blast_overwrites) > 0:
+            overwrites.setdefault("BLAST", {})
+            overwrites["BLAST"] = blast_overwrites
+        return overwrites
 
-
-if __name__ == '__main__':
-    pass

@@ -5,30 +5,33 @@ from src.definitions import DEFAULT_LOGGER_LEVEL, DEFAULT_LOGGER_NAME, DEFAULT_L
     DEFAULT_PF_OUTPUT_SUFFIX, DEFAULT_ORXN_PF_OUTPUT_SUFFIX, DEFAULT_FINAL_PF_OUTPUT_SUFFIX
 from src.lib.classifier import Classifier, FunctionClass
 from src.lib.ensemble import Ensemble
-from src.lib.util import read_e2p2_maps, logging_helper
+from src.lib.process import logging_helper
+from src.lib.read import read_e2p2_maps
 
 
 class PfFiles(object):
-    def __init__(self, ensemble_class_or_predictions, input_proteins=None, logger_name=DEFAULT_LOGGER_NAME):
+    def __init__(self, cls_to_write, input_proteins=None, logger_name=DEFAULT_LOGGER_NAME):
         """Initialize class
         Args:
-            ensemble_class_or_predictions: Input can be an Ensemble class or a prediction dictionary
+            cls_to_write: Input can be an Ensemble class or a prediction dictionary
             input_proteins: List of input protein IDs
             logger_name: The name of the logger
         Raises: SystemError
         Returns:
         """
-        if isinstance(ensemble_class_or_predictions, Ensemble):
-            self.final_prediction = ensemble_class_or_predictions.get_prediction(input_proteins)
-        elif type(ensemble_class_or_predictions) is dict:
-            self.final_prediction = ensemble_class_or_predictions
-            if input_proteins is not None:
-                for prot in input_proteins:
-                    if prot not in self.final_prediction:
-                        self.final_prediction.setdefault(prot, [])
+        if isinstance(cls_to_write, Ensemble):
+            self.final_prediction = cls_to_write.prediction.res
+        elif isinstance(cls_to_write, Classifier):
+            self.final_prediction = cls_to_write.res
+        elif type(cls_to_write) is dict:
+            self.final_prediction = cls_to_write
         else:
             logging_helper("PfFiles initialization failure", logging_level="ERROR", logger_name=logger_name)
             raise SystemError
+        if input_proteins is not None:
+            for prot in input_proteins:
+                if prot not in self.final_prediction:
+                    self.final_prediction.setdefault(prot, [])
 
     def write_short_results(self, ensemble_name, output_path, logging_level=DEFAULT_LOGGER_LEVEL,
                             logger_name=DEFAULT_LOGGER_NAME):
@@ -51,7 +54,7 @@ class PfFiles(object):
                     if len(predictions) == 0:
                         op.write('\t'.join([query, 'NA']) + '\n')
                     else:
-                        predicted_classes = FunctionClass.get_function_classes_attr_vals(predictions, attr='name')
+                        predicted_classes = list(set([fc.name for fc in predictions]))
                         op.write('\t'.join([query, '|'.join(predicted_classes)]) + '\n')
             except (AttributeError, NotImplementedError) as e:
                 logging_helper(
@@ -81,7 +84,7 @@ class PfFiles(object):
                     if len(predictions) == 0:
                         op.write('\t'.join(['>' + query, 'NA']) + '\n')
                     else:
-                        predicted_classes = FunctionClass.get_function_classes_attr_vals(predictions, attr='name')
+                        predicted_classes = list(set([fc.name for fc in predictions]))
                         op.write('\t'.join(['>' + query, '|'.join(predicted_classes)]) + '\n')
                         for classifier in list_of_classifiers:
                             if isinstance(classifier, Classifier):
@@ -123,7 +126,7 @@ class PfFiles(object):
                         continue
                     else:
                         op.write("ID\t%s\nNAME\t%s\nPRODUCT-TYPE\tP\n" % (query, query))
-                        predicted_classes = FunctionClass.get_function_classes_attr_vals(predictions, attr='name')
+                        predicted_classes = list(set([fc.name for fc in predictions]))
                         for ef_class in sorted(predicted_classes):
                             try:
                                 mapped_ids = ["METACYC\t" + i if "RXN" in i else "EC\t" + i for i in
@@ -210,7 +213,7 @@ class PfFiles(object):
                     if len(predictions) == 0:
                         continue
                     else:
-                        predicted_classes = FunctionClass.get_function_classes_attr_vals(predictions, attr='name')
+                        predicted_classes = list(set([fc.name for fc in predictions]))
                         for ef_class in sorted(predicted_classes):
                             try:
                                 metacyc_ids.update([i for i in ef_map_dict[ef_class] if "RXN" in i and
@@ -275,7 +278,7 @@ def write_ensemble_outputs(ensemble_cls, all_query_ids, output_path, ef_map_path
     ensemble_name = re.sub(r'[^\w\-_\. ]', '_', ensemble_cls.prediction.name)
     ensemble_classifiers = ensemble_cls.list_of_classifiers
 
-    ensemble_output = PfFiles(ensemble_cls.get_prediction(all_query_ids))
+    ensemble_output = PfFiles(ensemble_cls,all_query_ids)
     short_output_path = '.'.join([output_path, ensemble_name])
     ensemble_output.write_short_results(ensemble_name, output_path, logging_level="INFO", logger_name=logger_name)
 

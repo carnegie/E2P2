@@ -4,22 +4,21 @@ import os
 import re
 import sys
 
+from src.definitions import CONFIG_PATH, ROOT_DIR
 from src.bash.pipeline import *
 from src.lib.classifier import run_available_classifiers
-from src.lib.config import read_config_ini
+from src.lib.config import read_config
 from src.lib.ensemble import run_all_ensembles
-from src.lib.util import LoggerConfig, logging_helper, get_all_seq_ids_from_fasta
+from src.lib.process import LoggerConfig, logging_helper, load_module_function_from_path
+from src.lib.read import get_all_seq_ids_from_fasta
 from src.lib.write import PfFiles, write_ensemble_outputs
-
-from src.e2p2.classifiers.blast import blast_overwrites
-from src.e2p2.classifiers.priam import priam_overwrites
 
 
 project_path = os.path.dirname(__file__)
 sys.path.insert(0, project_path)
 
 
-if __name__ == '__main__':
+def main():
     name = 'e2p2.py'
     description = '''
     Runs the Ensemble Enzyme Prediction Pipeline (E2P2) on a set of input protein sequences,
@@ -32,26 +31,32 @@ if __name__ == '__main__':
     - Intermediate results files can be found in a temporary directory of its own subdirectory labeled with a date and 
     time stamp.
     '''
-    time_stamp = str(time.time())
+    time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser(prog=name, description=description, formatter_class=argparse.RawTextHelpFormatter,
                                      epilog=textwrap.dedent(notes))
+    add_io_arguments(parser)
     subparsers = parser.add_subparsers()
     parser_e2p2 = subparsers.add_parser('e2p2', help=textwrap.dedent("Argument to run E2P2."))
-    # parser_classify = subparsers.add_parser('classify', help=textwrap.dedent("Argument to run classifications only."))
-    # parser_ensemble = subparsers.add_parser('ensemble', help=textwrap.dedent("Argument to run ensembles only."))
 
-    # Argument for IO
-    add_io_arguments(parser_e2p2)
-    add_classifier_arugments(parser_e2p2)
-    add_ensemble_arguments(parser_e2p2)
-    add_mapping_arguments(parser_e2p2)
-    # Select classifiers to be used
+    mapping_files, classifier_dict, ensemble_dict = read_config(CONFIG_PATH)
+
+    for cls in classifier_dict:
+        cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
+        cls_fn = load_module_function_from_path(cls_path, cls)
+        cls_fn.add_arguments(parser_e2p2)
+
+    for ens in ensemble_dict:
+        ens_path = os.path.join(ROOT_DIR, ensemble_dict[ens]["class"])
+        ens_fn = load_module_function_from_path(ens_path, ens)
+        ens_fn.add_arguments(parser_e2p2)
+
+    # Parse arguments
     args = parser.parse_args()
 
     output_path, io_dict, create_temp_folder_flag, log_path, logging_level = \
-        io_helper(args.input_file, output_path=args.output_path, temp_folder=args.temp_folder,
-                  log_path=args.log_path, verbose=args.verbose, timestamp=time_stamp)
+        start_pipeline(args.input_file, output_path=args.output_path, temp_folder=args.temp_folder,
+                       log_path=args.log_path, verbose=args.verbose, timestamp=time_stamp)
 
     cur_logger_config = LoggerConfig()
     if os.path.isfile(os.path.realpath(log_path)):
@@ -73,40 +78,64 @@ if __name__ == '__main__':
         protein_to_gene_helper(args.input_file, output_path, args.protein_gene_path, args.remove_splice_variants,
                                logger_name=DEFAULT_LOGGER_NAME)
     io_dict["IO"]["query"] = fasta_path
+
     all_query_ids = get_all_seq_ids_from_fasta(fasta_path)
-    overwrites = \
-        blast_overwrites(args.blastp_cmd, args.blast_db, args.num_threads, args.blast_evalue, args.blast_weight,
-                         args.blast_cls, overwrites=None)
-    overwrites = \
-        priam_overwrites(args.java_cmd, args.priam_search, args.priam_resume, args.blast_bin, args.priam_profiles,
-                         args.priam_weight, args.priam_cls, overwrites=overwrites)
-    overwrites = ensemble_overwrites(args.ensemble_cls, args.threshold, overwrites=overwrites)
-    overwrites = \
-        mapping_overwrite(args.ef_map, args.ec_superseded, args.metacyc_rxn_ec, args.official_ec_metacyc_rxn,
-                          args.to_remove_metabolism, overwrites=overwrites)
 
-    classifier_sections, list_of_classifiers, ensemble_sections, list_of_ensembles, mapping_files = \
-        read_config_ini(time_stamp, args.config_file, io_dict, overwrites=overwrites, logging_level="WARNING",
-                        logger_name=DEFAULT_LOGGER_NAME)
+    # Overwrite config with arguments
+    overwrites = {}
+    for cls in classifier_dict:
+        cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
+        cls_fn = load_module_function_from_path(cls_path, cls)
+        io_dict["IO"][cls] = cls_fn.generate_output_paths(io_dict["IO"]["query"], io_dict["IO"]["out"], cls, time_stamp)
+        cls_fn.config_overwrites(args, overwrites)
+    for ens in ensemble_dict:
+        ens_path = os.path.join(ROOT_DIR, ensemble_dict[ens]["class"])
+        ens_fn = load_module_function_from_path(ens_path, ens)
+        ens_fn.config_overwrites(args, overwrites)
+    _, classifier_dict, ensemble_dict = read_config(CONFIG_PATH, io_dict, overwrites)
 
+    # Set up classifiers
+    classifier_names = sorted(classifier_dict.keys())
+    list_of_classifiers = []
+    for cls in classifier_names:
+        cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
+        path_to_weight = classifier_dict[cls]["weight"]
+        cls_fn = load_module_function_from_path(cls_path, cls)
+        cls_classifier = cls_fn(time_stamp, path_to_weight)
+        cls_classifier.setup_classifier(io_dict["IO"]["query"], io_dict["IO"]["out"], classifier_dict[cls])
+        list_of_classifiers.append(cls_classifier)
+
+    # Run Classifiers
     res_cls_list, skipped_classifiers = \
-        run_available_classifiers(classifier_sections, list_of_classifiers, logging_level=logging_level)
+        run_available_classifiers(classifier_names, list_of_classifiers, logging_level, DEFAULT_LOGGER_NAME)
 
+    # Set up ensembles
+    ensemble_names = sorted(ensemble_dict.keys())
+    list_of_ensembles = []
+    for ens in ensemble_names:
+        ens_path = os.path.join(ROOT_DIR, ensemble_dict[ens]["class"])
+        threshold = ensemble_dict[ens]["threshold"]
+        ens_fn = load_module_function_from_path(ens_path, ens)
+        ens_ensemble = ens_fn(res_cls_list, time_stamp, ens, threshold)
+        list_of_ensembles.append(ens_ensemble)
+
+    # Run Ensembles
     ensembles_ran, skipped_ensembles = \
-        run_all_ensembles(ensemble_sections, list_of_ensembles, res_cls_list, time_stamp, logging_level,
-                          DEFAULT_LOGGER_NAME)
+        run_all_ensembles(ensemble_names, list_of_ensembles, all_query_ids, DEFAULT_LOGGER_NAME)
 
     for ensemble_cls in ensembles_ran:
-        ensemble_name = re.sub(r'[^\w\-_\. ]', '_', ensemble_cls.prediction.name)
-        ensemble_classifiers = ensemble_cls.list_of_classifiers
-        ensemble_output = PfFiles(ensemble_cls.get_prediction(all_query_ids))
+        # ensemble_name = ensemble_cls.name
+        # ensemble_classifiers = ensemble_cls.list_of_classifiers
         write_ensemble_outputs(ensemble_cls, all_query_ids, output_path, mapping_files['efclasses'],
                                mapping_files['ec_superseded'], mapping_files['metacyc_rxn_ec'],
                                mapping_files['official_ec_metacyc_rxn'],
                                mapping_files['to_remove_non_small_molecule_metabolism'],
-                               prot_gene_map_path=args.protein_gene_path, logging_level=DEFAULT_LOGGER_LEVEL,
+                               prot_gene_map_path=args.protein_gene_path, logging_level=logging_level,
                                logger_name=DEFAULT_LOGGER_NAME)
 
+
+if __name__ == '__main__':
+    main()
 
 
 
