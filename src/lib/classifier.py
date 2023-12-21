@@ -247,11 +247,26 @@ class RunClassifiers(object):
 
     @staticmethod
     def add_arguments(argument_parser):
+        """Placeholder function that add classifier arguments to the pipeline.
+           Args:
+               argument_parser: ArgumentParser
+            Raises:
+           Returns:
+        """
         argument_parser.add_argument('Classifier')
 
     @staticmethod
     def config_overwrites(args, overwrites=None):
-        pass
+        """Placeholder function that returns a dictionary that will overwrite the config dictionary using arguments.
+            Args:
+                args: parsed arguments
+                overwrites: a dictionary that overwrites the parsed arguments
+            Raises:
+            Returns:
+        """
+        if overwrites is None:
+            overwrites = {}
+        return overwrites
 
 
 def run_available_classifiers(classifiers_to_run, list_of_classifiers, logging_level=DEFAULT_LOGGER_LEVEL,

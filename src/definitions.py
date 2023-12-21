@@ -10,6 +10,8 @@ ENSEMBLES_CLS_DIR = os.path.join(E2P2_CLS_DIR, 'ensembles')
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 MAPS_DIR = os.path.join(DATA_DIR, 'maps')
 WEIGHTS_DIR = os.path.join(DATA_DIR, 'weights')
+DEEPEC_DIR = os.path.join(ROOT_DIR, 'deepec')
+EC_TO_EF_MAPPING_PATH = os.path.join(DEEPEC_DIR, 'deepec/data/ec_to_ef.mapping')
 
 
 DEFAULT_LOGGER_LEVEL = "DEBUG"

@@ -9,15 +9,17 @@ from src.lib.function_class import FunctionClass
 from src.lib.process import logging_helper, PathType
 from src.lib.read import read_delim_itr
 
+CONFIG_CLASSIFIER_NAME = "BLAST"
+
 
 class BLAST(Classifier):
-    def __init__(self, time_stamp, path_to_weight, name="BLAST", e_value=float("1e-2"),
+    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME, e_value=float("1e-2"),
                  bit_score=float("0"), logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         Classifier.__init__(self, time_stamp, path_to_weight, name, logging_level, logger_name)
         self.e_value_threshold = e_value
         self.bit_score_threshold = bit_score
 
-    def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name="BLAST",
+    def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name=CONFIG_CLASSIFIER_NAME,
                          logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         logging_helper("Setting up BLAST", logging_level=logging_level, logger_name=logger_name)
         self.input = input_path
@@ -175,7 +177,7 @@ class BLAST(Classifier):
             except KeyError:
                 continue
         if len(blast_overwrites) > 0:
-            overwrites.setdefault("BLAST", {})
-            overwrites["BLAST"] = blast_overwrites
+            overwrites.setdefault(CONFIG_CLASSIFIER_NAME, {})
+            overwrites[CONFIG_CLASSIFIER_NAME] = blast_overwrites
         return overwrites
 

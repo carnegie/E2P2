@@ -7,15 +7,16 @@ from src.lib.classifier import FunctionClass, Classifier
 from src.lib.process import logging_helper, PathType
 from src.lib.read import read_groups_by_start_itr
 
+CONFIG_CLASSIFIER_NAME = "PRIAM"
 
 class PRIAM(Classifier):
-    def __init__(self, time_stamp, path_to_weight, name="PRIAM", e_value=float("1e-2"),
+    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME, e_value=float("1e-2"),
                  logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         Classifier.__init__(self, time_stamp, path_to_weight, name, logging_level, logger_name)
         # e value currently not used
         self.e_value_threshold = e_value
 
-    def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name="PRIAM",
+    def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name=CONFIG_CLASSIFIER_NAME,
                          logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         logging_helper("Setting up PRIAM", logging_level=logging_level, logger_name=logger_name)
         self.input = input_path
@@ -129,7 +130,7 @@ class PRIAM(Classifier):
             except KeyError:
                 continue
         if len(priam_overwrites) > 0:
-            overwrites.setdefault("PRIAM", {})
-            overwrites["PRIAM"] = priam_overwrites
+            overwrites.setdefault(CONFIG_CLASSIFIER_NAME, {})
+            overwrites[CONFIG_CLASSIFIER_NAME] = priam_overwrites
         return overwrites
 
