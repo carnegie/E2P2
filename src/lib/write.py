@@ -1,3 +1,4 @@
+import os.path
 import re
 from datetime import datetime
 
@@ -278,24 +279,26 @@ def write_ensemble_outputs(ensemble_cls, all_query_ids, output_path, ef_map_path
     ensemble_name = re.sub(r'[^\w\-_\. ]', '_', ensemble_cls.prediction.name)
     ensemble_classifiers = ensemble_cls.list_of_classifiers
 
-    ensemble_output = PfFiles(ensemble_cls,all_query_ids)
-    short_output_path = '.'.join([output_path, ensemble_name])
-    ensemble_output.write_short_results(ensemble_name, output_path, logging_level="INFO", logger_name=logger_name)
+    output_name, output_ext = os.path.splitext(output_path)
 
-    long_output_path = '.'.join([output_path, ensemble_name, DEFAULT_LONG_OUTPUT_SUFFIX])
+    ensemble_output = PfFiles(ensemble_cls, all_query_ids)
+    short_output_path = '.'.join([output_name, ensemble_name, output_ext.lstrip(".")])
+    ensemble_output.write_short_results(ensemble_name, short_output_path, logging_level="INFO", logger_name=logger_name)
+
+    long_output_path = '.'.join([output_name, ensemble_name, DEFAULT_LONG_OUTPUT_SUFFIX])
     ensemble_output.write_long_results(ensemble_classifiers, ensemble_name, long_output_path, logging_level="INFO",
                                        logger_name=logger_name)
 
-    pf_output_path = '.'.join([output_path, ensemble_name, DEFAULT_PF_OUTPUT_SUFFIX])
+    pf_output_path = '.'.join([output_name, ensemble_name, DEFAULT_PF_OUTPUT_SUFFIX])
     ensemble_output.write_pf_results(ef_map_path, pf_output_path, logging_level="INFO", logger_name=logger_name)
 
-    orxn_output_path = '.'.join([output_path, ensemble_name, DEFAULT_ORXN_PF_OUTPUT_SUFFIX])
+    orxn_output_path = '.'.join([output_name, ensemble_name, DEFAULT_ORXN_PF_OUTPUT_SUFFIX])
     ensemble_output.write_orxn_results(ef_map_path, ec_superseded_path, metacyc_rxn_ec_path,
                                        official_ec_metacyc_rxn_path, to_remove_metabolism_path, orxn_output_path,
                                        prot_gene_map_path=None, logging_level="INFO",
                                        logger_name=logger_name)
     if prot_gene_map_path is not None:
-        final_output_path = '.'.join([output_path, ensemble_name, DEFAULT_FINAL_PF_OUTPUT_SUFFIX])
+        final_output_path = '.'.join([output_name, ensemble_name, DEFAULT_FINAL_PF_OUTPUT_SUFFIX])
         ensemble_output.write_orxn_results(ef_map_path, ec_superseded_path, metacyc_rxn_ec_path,
                                            official_ec_metacyc_rxn_path, to_remove_metabolism_path, final_output_path,
                                            prot_gene_map_path=prot_gene_map_path, logging_level="INFO",
