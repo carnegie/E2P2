@@ -22,7 +22,7 @@ class NonCommandError(Error):
 
 
 class Classifier(object):
-    def __init__(self, time_stamp, path_to_weight=None, name="", input_path="", output_path="",
+    def __init__(self, time_stamp, path_to_weight=None, name="", input_path="", output_path="", args=None,
                  logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         logging_helper("Initializing Classifier: \"" + str(name) + "\"", logging_level=logging_level,
                        logger_name=logger_name)
@@ -39,6 +39,8 @@ class Classifier(object):
         # IO tracking
         self.input = input_path
         self.output = output_path
+        if args is not None:
+            pass
 
     def __repr__(self):
         return f'Classifier(\'{self.name}\', {self.command}, {self._time_stamp})'

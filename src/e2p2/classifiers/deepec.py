@@ -11,11 +11,17 @@ CONFIG_CLASSIFIER_NAME = "DEEPEC"
 
 
 class DEEPEC(Classifier):
-    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME,
-                 ec_to_ef_mapping_path=EC_TO_EF_MAPPING_PATH, logging_level=DEFAULT_LOGGER_LEVEL,
+    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME, args=None,
+                 logging_level=DEFAULT_LOGGER_LEVEL,
                  logger_name=DEFAULT_LOGGER_NAME):
         Classifier.__init__(self, time_stamp, path_to_weight, name, logging_level, logger_name)
-        self.ec_to_ef_map = ec_to_ef_mapping_path
+        try:
+            if args.ec_to_ef_mapping_path is not None:
+                self.ec_to_ef_map = args.ec_to_ef_mapping_path
+            else:
+                self.ec_to_ef_map = EC_TO_EF_MAPPING_PATH
+        except AttributeError:
+            self.ec_to_ef_map = EC_TO_EF_MAPPING_PATH
 
     def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name=CONFIG_CLASSIFIER_NAME,
                          logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
@@ -26,7 +32,7 @@ class DEEPEC(Classifier):
         [command_string] = \
             self.classifier_config_dict_helper(self._time_stamp, self.input, output_folder, classifier_config_dict,
                                                classifier_name, ["command"],
-                                               logging_level="INFO", logger_name="Log")
+                                               logging_level="INFO", logger_name=logger_name)
         try:
             self.command = command_string.split()
         except AttributeError:

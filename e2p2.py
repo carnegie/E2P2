@@ -101,7 +101,7 @@ def main():
         cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
         path_to_weight = classifier_dict[cls]["weight"]
         cls_fn = load_module_function_from_path(cls_path, cls)
-        cls_classifier = cls_fn(time_stamp, path_to_weight)
+        cls_classifier = cls_fn(time_stamp=time_stamp, path_to_weight=path_to_weight, args=args)
         cls_classifier.setup_classifier(io_dict["IO"]["query"], io_dict["IO"]["out"], classifier_dict[cls])
         list_of_classifiers.append(cls_classifier)
 

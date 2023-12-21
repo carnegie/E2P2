@@ -10,6 +10,10 @@ ENSEMBLES_CLS_DIR = os.path.join(E2P2_CLS_DIR, 'ensembles')
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 MAPS_DIR = os.path.join(DATA_DIR, 'maps')
 WEIGHTS_DIR = os.path.join(DATA_DIR, 'weights')
+
+DEFAULT_BLAST_E_VALUE = float("1e-2")
+DEFAULT_BLAST_BIT_SCORE = float("0")
+DEFAULT_PRIAM_E_VALUE = float("1e-2")
 DEEPEC_DIR = os.path.join(ROOT_DIR, 'deepec')
 EC_TO_EF_MAPPING_PATH = os.path.join(DEEPEC_DIR, 'deepec/data/ec_to_ef.mapping')
 

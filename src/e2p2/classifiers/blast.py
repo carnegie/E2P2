@@ -3,7 +3,7 @@ import random
 import re
 import textwrap
 
-from src.definitions import DEFAULT_LOGGER_LEVEL, DEFAULT_LOGGER_NAME
+from src.definitions import DEFAULT_LOGGER_LEVEL, DEFAULT_LOGGER_NAME, DEFAULT_BLAST_E_VALUE, DEFAULT_BLAST_BIT_SCORE
 from src.lib.classifier import Classifier
 from src.lib.function_class import FunctionClass
 from src.lib.process import logging_helper, PathType
@@ -13,31 +13,48 @@ CONFIG_CLASSIFIER_NAME = "BLAST"
 
 
 class BLAST(Classifier):
-    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME, e_value=float("1e-2"),
-                 bit_score=float("0"), logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
+    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME, args=None,
+                 logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         Classifier.__init__(self, time_stamp, path_to_weight, name, logging_level, logger_name)
-        self.e_value_threshold = e_value
-        self.bit_score_threshold = bit_score
+        try:
+            if args.blast_e_value is not None:
+                self.e_value_threshold = args.blast_e_value
+            else:
+                self.e_value_threshold = DEFAULT_BLAST_E_VALUE
+        except AttributeError:
+            self.e_value_threshold = DEFAULT_BLAST_E_VALUE
+        try:
+            if args.blast_bit_score is not None:
+                self.bit_score_threshold = args.blast_bit_score
+            else:
+                self.bit_score_threshold = DEFAULT_BLAST_BIT_SCORE
+        except AttributeError:
+            self.bit_score_threshold = DEFAULT_BLAST_BIT_SCORE
 
     def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name=CONFIG_CLASSIFIER_NAME,
                          logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         logging_helper("Setting up BLAST", logging_level=logging_level, logger_name=logger_name)
         self.input = input_path
         self.output = self.generate_output_paths(input_path, output_path, classifier_name, self._time_stamp)
+
         [e_value_threshold, bit_score_threshold, command_string] = \
             self.classifier_config_dict_helper(self._time_stamp, self.input, self.output, classifier_config_dict,
-                                               classifier_name, ["e_value", "bit_score", "command"],
-                                               logging_level=logging_level, logger_name=logger_name)
+                                               classifier_name, ["blast_e_value", "blast_bit_score", "command"],
+                                               logging_level="INFO", logger_name=logger_name)
         try:
             self.e_value_threshold = float(e_value_threshold)
         except (TypeError, ValueError) as e:
-            logging_helper("BLAST E-value type error, using default 1e-2.", logging_level="WARNING",
-                           logger_name=logger_name)
+            logging_helper("BLAST E-value in config missing or type error, using default " +
+                           str(DEFAULT_BLAST_E_VALUE) + ".",
+                           logging_level="WARNING", logger_name=logger_name)
+            self.e_value_threshold = DEFAULT_BLAST_E_VALUE
         try:
             self.bit_score_threshold = float(bit_score_threshold)
         except (TypeError, ValueError) as e:
-            logging_helper("BLAST Bit score type error, using default 0.", logging_level="WARNING",
-                           logger_name=logger_name)
+            logging_helper("BLAST Bit score in config missing or type error, using default " +
+                           str(DEFAULT_BLAST_BIT_SCORE) + ".",
+                           logging_level="WARNING", logger_name=logger_name)
+            self.bit_score_threshold = DEFAULT_BLAST_BIT_SCORE
         try:
             self.command = command_string.split()
         except AttributeError:
@@ -114,8 +131,8 @@ class BLAST(Classifier):
             self.res[query] = dup_removed
 
     @staticmethod
-    def blast_tab_itr(path_to_blast_out, e_value_threshold=float("1e-2"), bit_score_threshold=float("0"),
-                      logger_name=DEFAULT_LOGGER_NAME):
+    def blast_tab_itr(path_to_blast_out, e_value_threshold=DEFAULT_BLAST_E_VALUE,
+                      bit_score_threshold=DEFAULT_BLAST_BIT_SCORE, logger_name=DEFAULT_LOGGER_NAME):
         logging_helper("Reading blast output: \"" + path_to_blast_out + "\"", logging_level="INFO",
                        logger_name=logger_name)
         try:
@@ -154,14 +171,14 @@ class BLAST(Classifier):
                                          "Path to rpsd blast database name.\nFor example, \"/PATH/TO/FOLDER/rpsd.fa\", "
                                          "where you can find the following files in /PATH/TO/FOLDER:rpsd.fa.phr; "
                                          "rpsd.fa.pin; rpsd.fa.psq"))
-        argument_parser.add_argument("--e_value", "-be", dest="e_value", type=float,
-                                     help=textwrap.dedent("Blastp e-value cutoff"))
+        argument_parser.add_argument("--blast_e_value", "-be", dest="blast_e_value", type=float,
+                                     default=str(DEFAULT_BLAST_E_VALUE), help=textwrap.dedent("Blastp e-value cutoff"))
         argument_parser.add_argument("--blast_weight", "-bw", dest="blast_weight", type=PathType('file'),
                                      help=textwrap.dedent("Path to weight file for the blast classifier"))
 
     @staticmethod
     def config_overwrites(args, overwrites=None):
-        blast_dest = ["blastp", "num_threads", "blast_db", "e_value", "blast_weight"]
+        blast_dest = ["blastp", "num_threads", "blast_db", "blast_e_value", "blast_weight"]
         if overwrites is None:
             overwrites = {}
         blast_overwrites = {}

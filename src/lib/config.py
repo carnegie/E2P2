@@ -76,7 +76,7 @@ def get_values_from_config_option(config, section_name, option_name, logging_lev
                        logging_level=logging_level, logger_name=logger_name)
         return None
     except configparser.NoOptionError:
-        logging_helper("Missing '" + str(option_name) + "' in '" + str(section_name) + "' section",
+        logging_helper("Missing '" + str(option_name) + "' in '" + str(section_name) + "' section in config",
                        logging_level=logging_level, logger_name=logger_name)
         return None
 

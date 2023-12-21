@@ -2,19 +2,26 @@ import os
 import re
 import textwrap
 
-from src.definitions import DEFAULT_LOGGER_LEVEL, DEFAULT_LOGGER_NAME
+from src.definitions import DEFAULT_LOGGER_LEVEL, DEFAULT_LOGGER_NAME, DEFAULT_PRIAM_E_VALUE
 from src.lib.classifier import FunctionClass, Classifier
 from src.lib.process import logging_helper, PathType
 from src.lib.read import read_groups_by_start_itr
 
 CONFIG_CLASSIFIER_NAME = "PRIAM"
 
+
 class PRIAM(Classifier):
-    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME, e_value=float("1e-2"),
+    def __init__(self, time_stamp, path_to_weight, name=CONFIG_CLASSIFIER_NAME, args=None,
                  logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
         Classifier.__init__(self, time_stamp, path_to_weight, name, logging_level, logger_name)
         # e value currently not used
-        self.e_value_threshold = e_value
+        try:
+            if args.priam_e_value is not None:
+                self.e_value_threshold = args.priam_e_value
+            else:
+                self.e_value_threshold = DEFAULT_PRIAM_E_VALUE
+        except AttributeError:
+            self.e_value_threshold = DEFAULT_PRIAM_E_VALUE
 
     def setup_classifier(self, input_path, output_path, classifier_config_dict, classifier_name=CONFIG_CLASSIFIER_NAME,
                          logging_level=DEFAULT_LOGGER_LEVEL, logger_name=DEFAULT_LOGGER_NAME):
@@ -24,14 +31,15 @@ class PRIAM(Classifier):
         self.output = os.path.join(output_folder, "PRIAM_%s" % self._time_stamp, "ANNOTATION", "sequenceECs.txt")
         [evalue_threshold, command_string] = \
             self.classifier_config_dict_helper(self._time_stamp, self.input, output_folder, classifier_config_dict,
-                                               classifier_name, ["evalue_threshold", "command"],
-                                               logging_level="INFO", logger_name="Log")
+                                               classifier_name, ["priam_e_value", "command"],
+                                               logging_level="INFO", logger_name=logger_name)
         try:
             self.e_value_threshold = float(evalue_threshold)
         except (TypeError, ValueError) as e:
-            logging_helper("PRIAM E-value type error, using default 1e-2.", logging_level="WARNING",
-                           logger_name=logger_name)
-            self.e_value_threshold = float("1e-2")
+            logging_helper("PRIAM E-value in config missing or type error, using default " +
+                           str(DEFAULT_PRIAM_E_VALUE) + ".",
+                           logging_level="WARNING", logger_name=logger_name)
+            self.e_value_threshold = DEFAULT_PRIAM_E_VALUE
         try:
             self.command = command_string.split()
         except AttributeError:
