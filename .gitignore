@@ -5,3 +5,4 @@ test*
 *_test*
 utils*
 .vscode*
+config.ini

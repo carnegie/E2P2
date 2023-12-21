@@ -1,6 +1,6 @@
 # Ensemble Enzyme Prediction Pipeline (E2P2)
 
-The Ensemble Enzyme Prediction Pipeline (E2P2) annotates protein sequences with Enzyme Function classes comprised of full, four-part Enzyme Commission numbers and MetaCyc reaction identifiers. It is the enzyme annotation pipeline used to generate the species-specific metabolic databases at the [Plant Metabolic Network](www.plantcyc.org) since 2013. E2P2 systematically integrates results from two molecular function annotation algorithms using an ensemble classification scheme. For a given genome, all protein sequences are submitted as individual queries against the base-level annotation methods.
+The Ensemble Enzyme Prediction Pipeline (E2P2) annotates protein sequences with Enzyme Function classes comprised of full, four-part Enzyme Commission numbers and MetaCyc reaction identifiers. It is the enzyme annotation pipeline used to generate the species-specific metabolic databases at the [Plant Metabolic Network](www.plantcyc.org) since 2013. E2P2 systematically integrates results from two molecular function annotation algorithms using an ensemble classification scheme. For a given genome, all protein sequences are submitted as individual queries against the base-level annotation methods. Due to PRIAM's end of development and availability, we've replaced it with [DeepEC](https://bitbucket.org/kaistsystemsbiology/deepec/src/master/).
 
 ## Getting Started
 The following instuctions are for users to set up the E2P2 pipeline on a Unix machine and start running, developing and/or testing the pipeline.
@@ -9,17 +9,19 @@ The following instuctions are for users to set up the E2P2 pipeline on a Unix ma
 This pipeline is tested on Ubuntu, CentOS, macOS and should theoretically run on all Linux distributions.
 * [Python 3](https://www.python.org/downloads/)
 * [NCBI BLAST+](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
-* [Java 1.5 or above](https://www.oracle.com/technetwork/java/javase/downloads/index.html)
-**Currently it has been known that PRIAM might not work with Java version 11, we recommend using version 8 instead.
-* [PRIAM_Search utility V2](http://priam.prabi.fr/REL_JAN18/index_jan18.html)
-**A copy is temperarily included due to the source website being down.
+* ~~[Java 1.5 or above](https://www.oracle.com/technetwork/java/javase/downloads/index.html)~~
+~~**Currently it has been known that PRIAM might not work with Java version 11, we recommend using version 8 instead.~~
+* ~~[PRIAM_Search utility V2](http://priam.prabi.fr/REL_JAN18/index_jan18.html)~~
+~~**A copy is temperarily included due to the source website being down.~~
+* [DeepEC](https://github.com/bxuecarnegie/deepec)
+A fork of DeepEC is provided as a submodule, check "environment.yml" for prerequisites.
 
 ### Installing
 
 Download E2P2 from [E2P2 at GitHub](https://github.com/carnegie/E2P2)
 
 ```
-git clone https://github.com/carnegie/E2P2.git
+git clone --recurse-submodules https://github.com/carnegie/E2P2.git
 ```
 
 Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegiescience.edu/rpsd/
@@ -27,22 +29,21 @@ Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegie
 Unzip and extract RPSD data
 ```
 tar -xzf blastdb.tar.gz
-tar -xzf profiles.tar.gz
+tar -xzf deepec.tar.gz
 tar -xzf weights.tar.gz
 tar -xzf maps.tar.gz
 
 # If you want to just use the required arguments with a different version of RPSD data, 
 # replace the "maps" and "weights" folders under "data" in "E2P2" using the above folders 
-# with the same name.
+# with the same name. And replace the files under "deepec/deepec/data" with the files in deepec.tar.gz.
 ```
-
-#### Singularity container
-A [Singularity instance](https://singularity.lbl.gov/docs-instances) for E2P2 is written and provided by **Ludo Cottret** ([lipme](https://github.com/lipme)).
-You can find it at [e2p2-singularity](https://github.com/lipme/e2p2-singularity).
 
 ## Usage Example
 
-python3 e2p2.py [-h] e2p2 --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta --blastp blastp --java java --priam_search /PATH/TO/PRIAM_search.jar --rpsd /PATH/TO/blastdb/rpsd-4.2.fasta --priam_profile /PATH/TO/profiles
+### config.ini
+In the project's root folder is 
+
+python3 e2p2.py [-h] e2p2 --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta -o PATH/TO/output.pf e2p2 --threshold 0.5 
 
 ### Required Arguments
     --input INPUT_FILE, -i INPUT_FILE: Path to input protein sequences file
@@ -50,16 +51,11 @@ python3 e2p2.py [-h] e2p2 --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta
     --blastp BLASTP_CMD, -b BLASTP_CMD: Command of or path to NCBI BLAST+ "blastp" executable.
     
     --java JAVA_CMD, -j JAVA_CMD: Command of or path to "java" executable.
-    
-    --priam_search PRIAM_SEARCH, -ps PRIAM_SEARCH: Path to "PRIAM_search.jar" executable.
+
     
     --rpsd RPSD_DB, -r RPSD_DB: Path to RPSD BLAST database name.
       For example, "/PATH/TO/FOLDER/rpsd.fa", where you can find the following files in /PATH/TO/FOLDER: rpsd.fa.phr; rpsd.fa.pin; rpsd.fa.psq
-      
-    --priam_profile PRIAM_PROFILE, -pp PRIAM_PROFILE: Path to PRIAM profiles.
-      For example, "/PATH/TO/FOLDER/profiles", where you can find the following in /PATH/TO/FOLDER/profiles:
-        files: annotation_rules.xml; genome_rules.xml
-        folder: PROFILES: this contains a "LIBRARY" folder and multiple ".chk" files.
+
 ### Optional Arguments
     -h, --help: Show help message and exit
     
