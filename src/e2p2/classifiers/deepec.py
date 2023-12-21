@@ -16,7 +16,7 @@ class DEEPEC(Classifier):
                  logger_name=DEFAULT_LOGGER_NAME):
         Classifier.__init__(self, time_stamp, path_to_weight, name, logging_level, logger_name)
         try:
-            if args.ec_to_ef_mapping_path is not None:
+            if args.ec_to_ef_mapping_path is not None and os.path.isfile(args.ec_to_ef_mapping_path):
                 self.ec_to_ef_map = args.ec_to_ef_mapping_path
             else:
                 self.ec_to_ef_map = EC_TO_EF_MAPPING_PATH
@@ -44,7 +44,7 @@ class DEEPEC(Classifier):
     def generate_output_paths(input_path, output_path, classifier_name, time_stamp):
         input_file_name, input_file_ext = os.path.splitext(os.path.basename(input_path))
         if os.path.isfile(output_path):
-            output_folder = os.path.join(os.path.dirname(output_path), "DeepEC_%s_%s" % (input_file_name, time_stamp))
+            output_folder = os.path.join(os.path.dirname(output_path))
         elif os.path.isdir(output_path):
             output_folder = output_path
         else:
@@ -83,7 +83,7 @@ class DEEPEC(Classifier):
                         ec_to_ef_dict.setdefault(ec_num, mapped_efs)
         try:
             with open(path_to_deepec_result_txt, 'r') as op:
-                for query_id, pred_ecs in read_delim_itr(op, skip="Query ID"):
+                for query_id, pred_ecs in read_delim_itr(op, skip=["Query ID"]):
                     if query_id != "":
                         for ec in sorted(pred_ecs):
                             if ec_to_ef_map is None or len(ec_to_ef_dict) == 0:
