@@ -126,10 +126,12 @@ def main():
     for ensemble_cls in ensembles_ran:
         # ensemble_name = ensemble_cls.name
         # ensemble_classifiers = ensemble_cls.list_of_classifiers
-        write_ensemble_outputs(ensemble_cls, all_query_ids, output_path, mapping_files['efclasses'],
-                               mapping_files['ec_superseded'], mapping_files['metacyc_rxn_ec'],
-                               mapping_files['official_ec_metacyc_rxn'],
-                               mapping_files['to_remove_non_small_molecule_metabolism'],
+        write_ensemble_outputs(ensemble_cls, all_query_ids, output_path,
+                               os.path.join(ROOT_DIR, mapping_files['efclasses']),
+                               os.path.join(ROOT_DIR, mapping_files['ec_superseded']),
+                               os.path.join(ROOT_DIR, mapping_files['metacyc_rxn_ec']),
+                               os.path.join(ROOT_DIR, mapping_files['official_ec_metacyc_rxn']),
+                               os.path.join(ROOT_DIR, mapping_files['to_remove_non_small_molecule_metabolism']),
                                prot_gene_map_path=args.protein_gene_path, logging_level=logging_level,
                                logger_name=DEFAULT_LOGGER_NAME)
 
