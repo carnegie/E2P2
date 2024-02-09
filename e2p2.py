@@ -28,8 +28,7 @@ def main():
     notes = '''
     - Input protein sequences should be in FASTA format.
     - Headers in the FASTA file should begin with the sequence ID followed by a space or "|".
-    - Intermediate results files can be found in a temporary directory of its own subdirectory labeled with a date and 
-    time stamp.
+    - Intermediate results files can be found in a temporary directory of its own subdirectory labeled with a date and time stamp.
     '''
     time_stamp = str(int(time.time()))
 
@@ -40,6 +39,9 @@ def main():
     parser_e2p2 = subparsers.add_parser('e2p2', help=textwrap.dedent("Argument to run E2P2."))
 
     mapping_files, classifier_dict, ensemble_dict = read_config(CONFIG_PATH)
+    if None in (mapping_files, classifier_dict, ensemble_dict):
+        parser.print_help()
+        raise SystemExit
 
     for cls in classifier_dict:
         cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])

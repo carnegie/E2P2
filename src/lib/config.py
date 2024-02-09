@@ -44,7 +44,7 @@ def get_options_from_config_section(config, section_name, name_only=True, select
         else:
             return {tup[0]: tup[1] for tup in section_options if tup[0] in selected_options}
     except configparser.NoSectionError:
-        logging_helper("Missing '" + str(section_name) + "' section in config",
+        logging_helper("Missing '" + str(section_name) + "' section in config.ini",
                        logging_level=logging_level, logger_name=logger_name)
         return None
 
@@ -234,6 +234,10 @@ def read_config_ini(timestamp, config_ini, io_dict, overwrites=None, logging_lev
 
 def read_config(config_ini, io_dict=None, overwrites=None, logging_level="DEBUG", logger_name=DEFAULT_LOGGER_NAME):
     logging_helper("Processing config.ini", logging_level, logger_name)
+    if not os.path.isfile(config_ini):
+        logging_helper("Cannot find 'config.ini' at path %s." % config_ini, logging_level="ERROR",
+                       logger_name=DEFAULT_LOGGER_NAME)
+        return None, None, None
     pipeline_config = configparser.ConfigParser(allow_no_value=True, interpolation=configparser.ExtendedInterpolation())
     if io_dict is not None and type(io_dict) is dict:
         pipeline_config.read_dict(io_dict)
