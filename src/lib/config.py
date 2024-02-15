@@ -2,7 +2,7 @@ import configparser
 import os
 from argparse import ArgumentParser
 
-from src.definitions import ROOT_DIR, DEFAULT_LOGGER_NAME, CONFIG_PATH, CLASSIFIERS_CLS_DIR, WEIGHTS_DIR, ENSEMBLES_CLS_DIR, MAPS_DIR
+from src.definitions import ROOT_DIR, DEFAULT_LOGGER_NAME, DEFAULT_CONFIG_PATH, CLASSIFIERS_CLS_DIR, WEIGHTS_DIR, ENSEMBLES_CLS_DIR, MAPS_DIR
 from src.lib.process import logging_helper, load_module_function_from_path
 
 
@@ -277,7 +277,7 @@ def read_config(config_ini, io_dict=None, overwrites=None, logging_level="DEBUG"
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    config_path = CONFIG_PATH
+    config_path = DEFAULT_CONFIG_PATH
 
     ensemble_dict = read_config(config_path, None)[2]
     classifier_dict = read_config(config_path, None)[1]

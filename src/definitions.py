@@ -2,7 +2,7 @@ import os
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-CONFIG_PATH = os.path.join(ROOT_DIR, 'config.ini')
+DEFAULT_CONFIG_PATH = os.path.join(ROOT_DIR, 'config.ini')
 SRC_DIR = os.path.join(ROOT_DIR, 'src')
 E2P2_CLS_DIR = os.path.join(SRC_DIR, 'e2p2')
 CLASSIFIERS_CLS_DIR = os.path.join(E2P2_CLS_DIR, 'classifiers')

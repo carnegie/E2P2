@@ -17,6 +17,8 @@ def add_io_arguments(argument_parser):
     """
     argument_parser.add_argument("--input", "-i", dest="input_file", type=PathType('file'),
                                  help="Path to input protein sequences file", required=True)
+    argument_parser.add_argument("--config", "-c", dest="config_ini", type=PathType('file'),
+                                 help="Path to config.ini file")
     argument_parser.add_argument("--protein_gene", "-pg", dest="protein_gene_path", type=PathType('file'),
                                  help="Provide a protein to gene map. This can be used to generate a "
                                       "splice variant removed fasta file and output the final version of e2p2.")

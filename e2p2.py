@@ -4,7 +4,7 @@ import os
 import re
 import sys
 
-from src.definitions import CONFIG_PATH, ROOT_DIR
+from src.definitions import DEFAULT_CONFIG_PATH, ROOT_DIR
 from src.bash.pipeline import *
 from src.lib.classifier import run_available_classifiers
 from src.lib.config import read_config
@@ -31,14 +31,22 @@ def main():
     - Intermediate results files can be found in a temporary directory of its own subdirectory labeled with a date and time stamp.
     '''
     time_stamp = str(int(time.time()))
-
+    cur_logger_config = LoggerConfig()
     parser = argparse.ArgumentParser(prog=name, description=description, formatter_class=argparse.RawTextHelpFormatter,
                                      epilog=textwrap.dedent(notes))
     add_io_arguments(parser)
     subparsers = parser.add_subparsers()
     parser_e2p2 = subparsers.add_parser('e2p2', help=textwrap.dedent("Argument to run E2P2."))
 
-    mapping_files, classifier_dict, ensemble_dict = read_config(CONFIG_PATH)
+    # Config read in
+    args, others = parser.parse_known_args()
+    config_log_flag = False
+    if args.config_ini is not None and os.path.isfile(args.config_ini):
+        config_path = args.config_ini
+    else:
+        config_log_flag = True
+        config_path = DEFAULT_CONFIG_PATH
+    mapping_files, classifier_dict, ensemble_dict = read_config(config_path)
     if None in (mapping_files, classifier_dict, ensemble_dict):
         parser.print_help()
         raise SystemExit
@@ -55,18 +63,18 @@ def main():
 
     # Parse arguments
     args = parser.parse_args()
-
     output_path, io_dict, create_temp_folder_flag, log_path, logging_level = \
         start_pipeline(args.input_file, output_path=args.output_path, temp_folder=args.temp_folder,
                        log_path=args.log_path, verbose=args.verbose, timestamp=time_stamp)
 
-    cur_logger_config = LoggerConfig()
+
     if os.path.isfile(os.path.realpath(log_path)):
         cur_logger_config.add_new_logger(DEFAULT_LOGGER_NAME, log_path, logger_handler_mode='a')
     else:
         cur_logger_config.add_new_logger(DEFAULT_LOGGER_NAME, log_path)
     logging.config.dictConfig(cur_logger_config.dictConfig)
     logger = logging.getLogger(DEFAULT_LOGGER_NAME)
+
     if create_temp_folder_flag:
         logging_helper("Temp folder created at path %s." % io_dict["IO"]["out"], logging_level=logging_level,
                        logger_name=DEFAULT_LOGGER_NAME)
@@ -75,7 +83,9 @@ def main():
                        logger_name=DEFAULT_LOGGER_NAME)
     if os.path.isfile(os.path.realpath(log_path)):
         logger.log(logging.WARNING, "Log file %s exists, will append to it..." % log_path)
-
+    if config_log_flag is True:
+        logging_helper("No user provided config.ini is found, attempting to use file at %s." % DEFAULT_CONFIG_PATH,
+                       logging_level="INFO", logger_name=DEFAULT_LOGGER_NAME)
     fasta_path = \
         protein_to_gene_helper(args.input_file, output_path, args.protein_gene_path, args.remove_splice_variants,
                                logger_name=DEFAULT_LOGGER_NAME)
@@ -94,7 +104,7 @@ def main():
         ens_path = os.path.join(ROOT_DIR, ensemble_dict[ens]["class"])
         ens_fn = load_module_function_from_path(ens_path, ens)
         ens_fn.config_overwrites(args, overwrites)
-    _, classifier_dict, ensemble_dict = read_config(CONFIG_PATH, io_dict, overwrites)
+    _, classifier_dict, ensemble_dict = read_config(config_path, io_dict, overwrites)
 
     # Set up classifiers
     classifier_names = sorted(classifier_dict.keys())
