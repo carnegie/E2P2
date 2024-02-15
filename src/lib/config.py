@@ -274,28 +274,3 @@ def read_config(config_ini, io_dict=None, overwrites=None, logging_level="DEBUG"
 
     return mapping_dict, classifier_dict, ensemble_dict
 
-
-if __name__ == '__main__':
-    parser = ArgumentParser()
-    config_path = DEFAULT_CONFIG_PATH
-
-    ensemble_dict = read_config(config_path, None)[2]
-    classifier_dict = read_config(config_path, None)[1]
-    print(classifier_dict)
-    for cls in classifier_dict:
-        cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
-        cls_fn = load_module_function_from_path(cls_path, cls)
-        cls_fn.add_arguments(parser)
-    # parser.print_help()
-    overwrites = {}
-    args = parser.parse_args()
-    for cls in classifier_dict:
-        cls_path = os.path.join(ROOT_DIR, classifier_dict[cls]["class"])
-        cls_fn = load_module_function_from_path(cls_path, cls)
-        cls_fn.config_overwrites(args, overwrites)
-
-    print("overwrite", overwrites)
-    io = {"IO": {"query": "INPUT", "blast": "BLAST", "priam": "PRIAM", "timestamp": "000"}}
-    classifier_dict = read_config(config_path, io, overwrites)[1]
-    print(classifier_dict)
-
