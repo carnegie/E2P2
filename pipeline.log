@@ -1,6 +1,0 @@
-2019-03-03 20:54:30,744 file            DEBUG    MainProcess Starting Process "command -v blastp"
-2019-03-03 20:54:30,746 file            DEBUG    MainProcess Starting Process "command -v java"
-2019-03-03 20:54:30,748 file            DEBUG    MainProcess Starting Process "command -v haha"
-2019-03-03 20:54:30,773 file            DEBUG    MainProcess Process Ended, stdout[0]: /usr/local/bin/blastp
-2019-03-03 20:54:30,774 file            DEBUG    MainProcess Process Ended, stdout[0]: /Users/bxue/.jenv/shims/java
-2019-03-03 20:54:30,774 file            ERROR    MainProcess Process Error "command -v haha", stdout[0]: 

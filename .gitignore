@@ -2,8 +2,11 @@
 *__pycache__*
 *.idea*
 test*
+tools*
 *_test*
 utils*
 .vscode*
 .virtualenvs*
 config.ini
+*.log
+
