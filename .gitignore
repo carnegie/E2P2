@@ -5,4 +5,5 @@ test*
 *_test*
 utils*
 .vscode*
+.virtualenvs*
 config.ini
