@@ -87,6 +87,9 @@ class BLAST(Classifier):
             except KeyError:
                 e_value_function_classes = []
                 bit_score_function_classes = []
+            if len(hit_cls) == 0:
+                # Workaround for non-enzyme hits
+                hit_cls = ['#NA#']
             for ef_cls in hit_cls:
                 try:
                     ef_weight = self.weight_map[ef_cls]
@@ -94,10 +97,7 @@ class BLAST(Classifier):
                     ef_weight = 0
                 e_value_function_classes.append(FunctionClass(ef_cls, e_value, ef_weight))
                 bit_score_function_classes.append(FunctionClass(ef_cls, bit_score, ef_weight))
-            if len(e_value_function_classes) == 0 or len(bit_score_function_classes) == 0:
-                self.res.setdefault(query_id, [])
-                bit_score_dict.setdefault(query_id, [])
-                continue
+
             min_e_value = min(e_value_function_classes).score
             min_e_value_function_classes = (
                 FunctionClass.get_function_classes_by_vals(e_value_function_classes, min_e_value, 'score'))
@@ -112,14 +112,19 @@ class BLAST(Classifier):
                                                            max_bit_score, 'score'))
 
             best_function_classes_names = list(set([fc.name for fc in best_bit_score_function_classes]))
-            best_e_value_function_classes = (
+            # Workaround for non-enzyme hits
+            if '#NA#' in best_function_classes_names:
+                self.res.setdefault(query_id, [])
+                bit_score_dict.setdefault(query_id, [])
+                continue
+            best_function_classes = (
                 FunctionClass.get_function_classes_by_vals(min_e_value_function_classes,
                                                            best_function_classes_names, "name"))
             try:
-                self.res[query_id] = best_e_value_function_classes
+                self.res[query_id] = best_function_classes
                 bit_score_dict[query_id] = best_bit_score_function_classes
             except KeyError:
-                self.res.setdefault(query_id, best_e_value_function_classes)
+                self.res.setdefault(query_id, best_function_classes)
                 bit_score_dict.setdefault(query_id, best_bit_score_function_classes)
         for query in self.res:
             dup_removed = []
