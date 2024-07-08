@@ -112,11 +112,6 @@ class BLAST(Classifier):
                                                            max_bit_score, 'score'))
 
             best_function_classes_names = list(set([fc.name for fc in best_bit_score_function_classes]))
-            # Workaround for non-enzyme hits
-            if '#NA#' in best_function_classes_names:
-                self.res.setdefault(query_id, [])
-                bit_score_dict.setdefault(query_id, [])
-                continue
             best_function_classes = (
                 FunctionClass.get_function_classes_by_vals(min_e_value_function_classes,
                                                            best_function_classes_names, "name"))
@@ -130,6 +125,10 @@ class BLAST(Classifier):
             dup_removed = []
             res_of_query = self.res[query]
             function_cls_names = list(set([fc.name for fc in res_of_query]))
+            # Workaround for non-enzyme hits
+            if '#NA#' in function_cls_names:
+                self.res[query] = []
+                continue
             for cls_name in function_cls_names:
                 func_classes_w_name = FunctionClass.get_function_classes_by_vals(res_of_query, cls_name, "name")
                 dup_removed.append(random.choice(func_classes_w_name))
