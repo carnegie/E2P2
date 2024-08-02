@@ -1,6 +1,8 @@
 # Ensemble Enzyme Prediction Pipeline (E2P2)
 
-The Ensemble Enzyme Prediction Pipeline (E2P2) annotates protein sequences with Enzyme Function classes comprised of full, four-part Enzyme Commission numbers and MetaCyc reaction identifiers. It is the enzyme annotation pipeline used to generate the species-specific metabolic databases at the [Plant Metabolic Network](www.plantcyc.org) since 2013. E2P2 systematically integrates results from two molecular function annotation algorithms using an ensemble classification scheme. For a given genome, all protein sequences are submitted as individual queries against the base-level annotation methods. Due to PRIAM's end of development and availability, we've replaced it with [DeepEC](https://bitbucket.org/kaistsystemsbiology/deepec/src/master/).
+The Ensemble Enzyme Prediction Pipeline (E2P2) annotates protein sequences with Enzyme Function classes comprised of full, four-part Enzyme Commission numbers and MetaCyc reaction identifiers. It is the enzyme annotation pipeline used to generate the species-specific metabolic databases at the [Plant Metabolic Network](www.plantcyc.org) since 2013. E2P2 systematically integrates results from two molecular function annotation algorithms using an ensemble classification scheme. For a given genome, all protein sequences are submitted as individual queries against the base-level annotation methods. 
+
+Due to PRIAM's end of development and availability, we've replaced it with [DeepEC](https://bitbucket.org/kaistsystemsbiology/deepec/src/master/) and moved the current E2P2 version to "v5". You can still download the previous version in the "v4" branch.
 
 ## Getting Started
 The following instuctions are for users to set up the E2P2 pipeline on a Unix machine and start running, developing and/or testing the pipeline.
