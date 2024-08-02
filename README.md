@@ -23,6 +23,7 @@ git clone https://github.com/carnegie/E2P2.git
 ```
 
 Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegiescience.edu/rpsd/
+* Version release_2019-03-07 and below.
 
 Unzip and extract RPSD data
 ```
