@@ -23,6 +23,11 @@ Download E2P2 from [E2P2 at GitHub](https://github.com/carnegie/E2P2)
 ```
 git clone --recurse-submodules https://github.com/carnegie/E2P2.git
 ```
+* If folder "deepec" is empty, run the following command in the 'E2P2' folder
+```
+git submodule update --init
+```
+
 
 Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegiescience.edu/rpsd/
 * Version release_2024_07_31 and up.
