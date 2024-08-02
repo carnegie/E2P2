@@ -1,6 +1,8 @@
 # Ensemble Enzyme Prediction Pipeline (E2P2)
 
-The Ensemble Enzyme Prediction Pipeline (E2P2) annotates protein sequences with Enzyme Function classes comprised of full, four-part Enzyme Commission numbers and MetaCyc reaction identifiers. It is the enzyme annotation pipeline used to generate the species-specific metabolic databases at the [Plant Metabolic Network](www.plantcyc.org) since 2013. E2P2 systematically integrates results from two molecular function annotation algorithms using an ensemble classification scheme. For a given genome, all protein sequences are submitted as individual queries against the base-level annotation methods.
+The Ensemble Enzyme Prediction Pipeline (E2P2) annotates protein sequences with Enzyme Function classes comprised of full, four-part Enzyme Commission numbers and MetaCyc reaction identifiers. It is the enzyme annotation pipeline used to generate the species-specific metabolic databases at the [Plant Metabolic Network](www.plantcyc.org) since 2013. E2P2 systematically integrates results from two molecular function annotation algorithms using an ensemble classification scheme. For a given genome, all protein sequences are submitted as individual queries against the base-level annotation methods. 
+
+Due to PRIAM's end of development and availability, we've replaced it with [DeepEC](https://bitbucket.org/kaistsystemsbiology/deepec/src/master/) and moved the current E2P2 version to "v5". You can still download the previous version in the "v4" branch.
 
 ## Getting Started
 The following instuctions are for users to set up the E2P2 pipeline on a Unix machine and start running, developing and/or testing the pipeline.
@@ -9,87 +11,97 @@ The following instuctions are for users to set up the E2P2 pipeline on a Unix ma
 This pipeline is tested on Ubuntu, CentOS, macOS and should theoretically run on all Linux distributions.
 * [Python 3](https://www.python.org/downloads/)
 * [NCBI BLAST+](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
-* [Java 1.5 or above](https://www.oracle.com/technetwork/java/javase/downloads/index.html)
-**Currently it has been known that PRIAM might not work with Java version 11, we recommend using version 8 instead.
-* [PRIAM_Search utility V2](http://priam.prabi.fr/REL_JAN18/index_jan18.html)
-**A copy is temperarily included due to the source website being down.
+* ~~[Java 1.5 or above](https://www.oracle.com/technetwork/java/javase/downloads/index.html)~~
+~~**Currently it has been known that PRIAM might not work with Java version 11, we recommend using version 8 instead.~~
+* ~~[PRIAM_Search utility V2](http://priam.prabi.fr/REL_JAN18/index_jan18.html)~~
+~~**A copy is temperarily included due to the source website being down.~~
+* [DeepEC](https://github.com/bxuecarnegie/deepec)
+A fork of DeepEC is provided as a submodule, check "environment.yml" for prerequisites.
 
 ### Installing
 
 Download E2P2 from [E2P2 at GitHub](https://github.com/carnegie/E2P2)
 
 ```
-git clone https://github.com/carnegie/E2P2.git
+git clone --recurse-submodules https://github.com/carnegie/E2P2.git
+```
+* If folder "deepec" is empty, run the following command in the 'E2P2' folder
+```
+git submodule update --init
 ```
 
+
 Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegiescience.edu/rpsd/
+* Version release_2024_07_31 and up.
+
 
 Unzip and extract RPSD data
 ```
 tar -xzf blastdb.tar.gz
-tar -xzf profiles.tar.gz
+tar -xzf deepec.tar.gz
 tar -xzf weights.tar.gz
 tar -xzf maps.tar.gz
 
 # If you want to just use the required arguments with a different version of RPSD data, 
 # replace the "maps" and "weights" folders under "data" in "E2P2" using the above folders 
-# with the same name.
+# with the same name. And replace the files under "deepec/deepec/data" with the files in deepec.tar.gz.
 ```
-
-#### Singularity container
-A [Singularity instance](https://singularity.lbl.gov/docs-instances) for E2P2 is written and provided by **Ludo Cottret** ([lipme](https://github.com/lipme)).
-You can find it at [e2p2-singularity](https://github.com/lipme/e2p2-singularity).
 
 ## Usage Example
 
-python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta --blastp blastp --java java --priam_search /PATH/TO/PRIAM_search.jar --rpsd /PATH/TO/blastdb/rpsd-4.2.fasta --priam_profile /PATH/TO/profiles
+### config.ini
+In the project's data folder is a "config_template.ini".
+
+> **Users need copy the template to the root folder as "config.ini" and edit the environmental variables.**
+
+python3 e2p2.py [-h] e2p2 --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta -o PATH/TO/output.pf e2p2 --threshold 0.5 
 
 ### Required Arguments
     --input INPUT_FILE, -i INPUT_FILE: Path to input protein sequences file
-    
-    --blastp BLASTP_CMD, -b BLASTP_CMD: Command of or path to NCBI BLAST+ "blastp" executable.
-    
-    --java JAVA_CMD, -j JAVA_CMD: Command of or path to "java" executable.
-    
-    --priam_search PRIAM_SEARCH, -ps PRIAM_SEARCH: Path to "PRIAM_search.jar" executable.
-    
-    --rpsd RPSD_DB, -r RPSD_DB: Path to RPSD BLAST database name.
-      For example, "/PATH/TO/FOLDER/rpsd.fa", where you can find the following files in /PATH/TO/FOLDER: rpsd.fa.phr; rpsd.fa.pin; rpsd.fa.psq
-      
-    --priam_profile PRIAM_PROFILE, -pp PRIAM_PROFILE: Path to PRIAM profiles.
-      For example, "/PATH/TO/FOLDER/profiles", where you can find the following in /PATH/TO/FOLDER/profiles:
-        files: annotation_rules.xml; genome_rules.xml
-        folder: PROFILES: this contains a "LIBRARY" folder and multiple ".chk" files.
-### Optional Arguments
+
+    e2p2: subparser argument, used to separate pipeline arguments and classifier/ensemble arguments
+
+### Optional Arguments Before "e2p2"
+    -h, --help            show this help message and exit
+    --input INPUT_FILE, -i INPUT_FILE
+                        Path to input protein sequences file
+    --protein_gene PROTEIN_GENE_PATH, -pg PROTEIN_GENE_PATH
+                        Provide a protein to gene map. This can be used to generate a splice variant removed fasta file and output the final version of e2p2.
+    --remove_splice_variants, -rm
+                        Argument flag to remove splice variants.
+    --output OUTPUT_PATH, -o OUTPUT_PATH
+                        Path to output file. By Default would be in the same folder of the input.
+    --temp_folder TEMP_FOLDER, -tf TEMP_FOLDER
+                        Specify the location of the temp folder. By default would be in the same directory of the output.
+    --log LOG_PATH, -l LOG_PATH
+                        Specify the location of the log file. By default would be "runE2P2.log" in the temp folder.
+    --verbose {0,1}, -v {0,1}
+                        Verbose level of log output. Default is 0.
+                                    0: only step information are logged
+                                    1: all information are logged
+
+### Optional Arguments After "e2p2"
     -h, --help: Show help message and exit
     
-    --output OUTPUT_PATH, -o OUTPUT_PATH: Path to output file. By Default it would be in the same folder of the input.
-    
-    --num_threads NUM_THREADS, -n NUM_THREADS: Number of threads to run "blastp". Default is 1
-    
-    --priam_resume, -pr: Whether or not to resume process if a unfinished PRIAM_search.jar process is found.
-    
-    --blast_bin BLAST_BIN, -bb BLAST_BIN: Command of or path to NCBI BLAST+ bin folder. By Default, the pipeline would try to retrieve the path from the '--blastp/-b' input path.
-    
-    --blast_weight BLAST_WEIGHT, -bw BLAST_WEIGHT: Path to weight file for the blast classifier. By default, the path would be defined in the 'definitions' module
-    
-    --blast_evalue EVALUE, -be EVALUE: blastp evalue cutoff. Default is 1e-2
-
-    --priam_weight PRIAM_WEIGHT, -pw PRIAM_WEIGHT: Path to blast weight for the priam classifier
-    
-    --efmap EF_MAP, -e EF_MAP: Path to Enzyme function class to Metacyc RXN-ID/EC Number file (efclasses.mapping).
-    
-    --threshold THRESHOLD, -th THRESHOLD: Threshold for voting results. Default is 0.5.
-    
-    --temp_folder TEMP_FOLDER, -tf TEMP_FOLDER: Specify the location of the temp folder that contains classifier results. By default it would be in the same directory of the output.
-    
-    --log LOG_PATH, -l LOG_PATH: Specify the location of the log file. By default it would be "runE2P2.log" in the temp folder.
-    
-    --protein_gene PROTEIN_GENE_PATH, -pg PROTEIN_GENE_PATH: Provide a protein to gene mapping file. This will be used to generate a splice variant removed fasta file and output our final version of e2p2.
-    
-    --verbose {0,1}, -v {0,1}: Verbose level of log output. Default is 0.
-       0: only step information are logged
-       1: all information are logged
+    --blastp BLASTP, -b BLASTP
+                        Command of or path to BLAST+ "blastp".
+    --num_threads NUM_THREADS, -n NUM_THREADS
+                        Number of threads to run "blastp".
+    --blast_db BLAST_DB, -bd BLAST_DB
+                        Path to rpsd blast database name. For example, "/PATH/TO/FOLDER/rpsd.fa", where you can find the following files in
+                        /PATH/TO/FOLDER:rpsd.fa.phr; rpsd.fa.pin; rpsd.fa.psq
+    --blast_e_value BLAST_E_VALUE, -be BLAST_E_VALUE
+                        Blastp e-value cutoff
+    --blast_weight BLAST_WEIGHT, -bw BLAST_WEIGHT
+                        Path to weight file for the blast classifier
+    --python_path PYTHON_PATH, -py PYTHON_PATH
+                        Command of or path to "java".
+    --deepec_path DEEPEC_PATH, -dp DEEPEC_PATH
+                        Path to "deepec.py".
+    --ec_to_ef_mapping_path EC_TO_EF_MAPPING_PATH, -ee EC_TO_EF_MAPPING_PATH
+                        Path to mapping file from ECs to EFs
+    --threshold THRESHOLD, -t THRESHOLD
+                        Threshold for voting results. Default is 0.5.
 
 ### Additional information
 - Input protein sequences should be in FASTA format.
@@ -115,4 +127,4 @@ python3 run_pipeline.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fa
 
 * Special Thanks to
   * Thomas Bernard - *PRIAM*
-  * Ludo Cottret - [lipme](https://github.com/lipme) - *Singularity Container*
+  * Ludo Cottret - [lipme](https://github.com/lipme) - *Singularity Container For Previous Versions*
