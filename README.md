@@ -54,7 +54,7 @@ In the project's data folder is a "config_template.ini".
 
 > **Users need copy the template to the root folder as "config.ini" and edit the environmental variables.**
 
-python3 e2p2.py [-h] e2p2 --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta -o PATH/TO/output.pf e2p2 --threshold 0.5 
+python3 e2p2.py [-h] --input /PATH/TO/Araport11_genes.201606.pep.repr.fasta -o PATH/TO/output.pf e2p2 --threshold 0.5 
 
 ### Required Arguments
     --input INPUT_FILE, -i INPUT_FILE: Path to input protein sequences file
