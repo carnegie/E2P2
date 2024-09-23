@@ -1,4 +1,4 @@
 [submodule "deepec"]
 	path = deepec
-	url = git@github.com:bxuecarnegie/deepec.git
+	url = https://github.com/bxuecarnegie/deepec.git
 	branch = main
