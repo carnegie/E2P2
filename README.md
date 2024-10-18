@@ -22,7 +22,7 @@ A fork of DeepEC is provided as a submodule, check "environment.yml" for prerequ
 
 Download E2P2 from [E2P2 at GitHub](https://github.com/carnegie/E2P2)
 
-**Currently the E2P2 pipeline does not support white spaces or other illegal symbols in files paths**
+**Currently the E2P2 pipeline does not support white spaces or other illegal symbols in files paths.**
 
 ```
 git clone --recurse-submodules https://github.com/carnegie/E2P2.git
