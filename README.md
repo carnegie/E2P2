@@ -35,12 +35,17 @@ Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegie
 * Version release_2024_07_31 and up.
 
 
-Unzip and extract RPSD data
+Unzip and extract RPSD data (different argument for tar depending on the file extensions)
 ```
 tar -xzf blastdb.tar.gz
 tar -xzf deepec.tar.gz
 tar -xzf weights.tar.gz
 tar -xzf maps.tar.gz
+
+tar -xjf blastdb.tar.bz2
+tar -xjf deepec.tar.bz2
+tar -xjf weights.tar.bz2
+tar -xjf maps.tar.bz2
 
 # If you want to just use the required arguments with a different version of RPSD data, 
 # replace the "maps" and "weights" folders under "data" in "E2P2" using the above folders 
