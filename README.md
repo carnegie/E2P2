@@ -22,7 +22,7 @@ Download E2P2 from [E2P2 at GitHub](https://github.com/carnegie/E2P2)
 git clone https://github.com/carnegie/E2P2.git
 ```
 
-Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegiescience.edu/rpsd/
+Download Reference Protein Sequence Dataset (RPSD) from https://ftp.plantcyc.org/rpsd/
 * Version release_2019-03-07 and below.
 
 Unzip and extract RPSD data
