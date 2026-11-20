@@ -33,7 +33,7 @@ git submodule update --init
 ```
 
 
-Download Reference Protein Sequence Dataset (RPSD) from https://ftp.dpb.carnegiescience.edu/rpsd/
+Download Reference Protein Sequence Dataset (RPSD) from https://ftp.plantcyc.org/rpsd/
 * Version release_2024_07_31 and up.
 
 
